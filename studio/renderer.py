@@ -77,8 +77,9 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     dialogue_active = any(line.get("speaker") == actor.get("id") for line in shot.get("dialogue", []))
     action = str(actor.get("action", "talk" if dialogue_active else shot.get("action", "idle")))
     rig = actor.get("_rig", {})
-    appearance = rig.get("appearance", {})
-    proportions = rig.get("proportions", {})
+    # Character-instance overrides let the 60-profile catalog share one rig topology.
+    appearance = {**rig.get("appearance", {}), **actor.get("appearance", {})}
+    proportions = {**rig.get("proportions", {}), **actor.get("proportions", {})}
     pose = sample_motion(action, time_s, motion_library)
     for key, value in actor.get("pose", {}).items():
         if key in pose:
