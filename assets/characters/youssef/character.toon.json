@@ -8,7 +8,16 @@
     "head_shape": "soft_round",
     "head_to_body_ratio": 0.31,
     "outline_width": 7,
-    "keep_face_and_scarf_consistent": true
+    "keep_face_and_scarf_consistent": true,
+    "joint_topology": "shoulder-elbow-wrist-fingers / hip-knee-ankle-toe",
+    "face_controls": [
+      "blink",
+      "gaze_x",
+      "gaze_y",
+      "brow",
+      "mouth",
+      "emotion"
+    ]
   },
   "appearance": {
     "skin": "#F3D2B2",
@@ -28,7 +37,28 @@
     "upper_arm": 0.92,
     "forearm": 0.78,
     "thigh": 1.02,
-    "shin": 0.98
+    "shin": 0.98,
+    "hand": 0.24,
+    "finger": 0.2,
+    "foot": 0.43,
+    "joint_limits": {
+      "shoulder": [
+        -165,
+        165
+      ],
+      "elbow": [
+        -138,
+        138
+      ],
+      "hip": [
+        -82,
+        82
+      ],
+      "knee": [
+        -8,
+        145
+      ]
+    }
   },
   "personality": [
     "curious",
