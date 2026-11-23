@@ -1,6 +1,6 @@
 import unittest
 
-from studio.rig import build_skeleton, facial_pose, sample_motion, solve_two_bone
+from studio.rig import build_skeleton, facial_pose, foot_plant_targets, sample_motion, solve_two_bone
 
 
 class CharacterRigTests(unittest.TestCase):
@@ -55,6 +55,14 @@ class CharacterRigTests(unittest.TestCase):
         self.assertAlmostEqual(joints["right_wrist"][1], -80, places=5)
         self.assertAlmostEqual(joints["left_foot"][0], -45, places=5)
         self.assertAlmostEqual(joints["left_foot"][1], 165, places=5)
+
+    def test_foot_plant_target_compensates_root_motion(self):
+        planted = foot_plant_targets("walk", 0.1, root_dx_since_stance=24, root_y=-8)
+        self.assertIn("left_ankle_target_x", planted)
+        self.assertIn("left_ankle_target_y", planted)
+        anchor = build_skeleton(sample_motion("walk", 0.0))["left_foot"]
+        self.assertAlmostEqual(planted["left_ankle_target_x"] + 24, anchor[0], places=5)
+        self.assertAlmostEqual(planted["left_ankle_target_y"] - 8, anchor[1], places=5)
 
     def test_facial_controls_clamp_gaze_and_blink(self):
         face = facial_pose({"gaze_x": 10, "gaze_y": -10, "blink": 4, "emotion": 1}, .5)
