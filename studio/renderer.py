@@ -12,10 +12,10 @@ from typing import Any
 
 try:
     import skia
-
-from .rig import build_skeleton, sample_motion
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
+
+from .rig import build_skeleton, sample_motion
 
 
 def clamp(value: float, low: float, high: float) -> float:
