@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "algerian_neighborhood",
+  "name": "حي جزائري ساحلي معاصر",
+  "palette": {
+    "sky_top": "#77BCEB",
+    "sky_bottom": "#F7D9B5",
+    "wall": "#E7D6BD",
+    "wall_shadow": "#B99D7E",
+    "door": "#2878C8",
+    "accent": "#C62828",
+    "vegetation": "#557C55",
+    "street": "#B6A58F"
+  },
+  "layers": [
+    "far_hills",
+    "white_sand_apartment_blocks",
+    "balconies_satellite_dishes",
+    "street_shopfronts",
+    "foreground_pavement"
+  ],
+  "props": [
+    "balcony_ironwork",
+    "roller_shutter",
+    "street_lamp",
+    "potted_geranium",
+    "parked_scooter"
+  ],
+  "art_direction": "Contemporary Algerian neighborhood, Mediterranean light, painted shapes with ink outlines; no gibberish signage.",
+  "continuity": [
+    "keep street geography stable",
+    "reuse prop IDs and building colors",
+    "match lighting to story time"
+  ]
+}
