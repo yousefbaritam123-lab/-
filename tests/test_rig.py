@@ -67,7 +67,8 @@ class CharacterRigTests(unittest.TestCase):
         self.assertIn("left_ankle_target_y", planted)
         anchor = build_skeleton(sample_motion("walk", 0.0))["left_foot"]
         self.assertAlmostEqual(planted["left_ankle_target_x"] + 24, anchor[0], places=5)
-        self.assertAlmostEqual(planted["left_ankle_target_y"] - 8, anchor[1], places=5)
+        self.assertAlmostEqual(planted["left_ankle_target_y"] + planted["root_y"], anchor[1], places=5)
+        self.assertLessEqual((planted["left_ankle_target_x"] ** 2 + planted["left_ankle_target_y"] ** 2) ** 0.5, 205.1)
 
     def test_facial_controls_clamp_gaze_and_blink(self):
         face = facial_pose({"gaze_x": 10, "gaze_y": -10, "blink": 4, "emotion": 1}, .5)
