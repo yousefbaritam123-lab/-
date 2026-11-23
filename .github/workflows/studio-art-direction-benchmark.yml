@@ -97,6 +97,20 @@ jobs:
             ]
           }
           (root/"episode.json").write_text(json.dumps(episode,ensure_ascii=False,indent=2),encoding="utf-8")
+          ledger = {
+            "schema_version":1,
+            "series_id":"studio-art-direction-benchmark",
+            "episode_number":1,
+            "previous_episode":None,
+            "character_state":{
+              "extra_006":{"wardrobe":"red jacket","personality":["decisive"],"known_facts":[]},
+              "extra_014":{"wardrobe":"blue jacket","personality":["inventive"],"known_facts":[]},
+              "extra_021":{"wardrobe":"dark jacket","personality":["careful"],"known_facts":[]}
+            },
+            "world_state":[],
+            "unresolved_threads":[]
+          }
+          (root/"continuity.json").write_text(json.dumps(ledger,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
       - name: Validate and render all 300 frames
         run: |
