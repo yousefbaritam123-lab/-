@@ -16,6 +16,7 @@ POSE_KEYS = (
     "gaze_x", "gaze_y", "blink", "mouth", "brow", "emotion",
     "left_hand_target_x", "left_hand_target_y", "right_hand_target_x", "right_hand_target_y",
     "left_ankle_target_x", "left_ankle_target_y", "right_ankle_target_x", "right_ankle_target_y",
+    "left_ik_bend", "right_ik_bend",
 )
 
 DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
