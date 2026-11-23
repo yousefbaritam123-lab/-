@@ -27,7 +27,7 @@ jobs:
       - name: Install graphics libraries and Arabic fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libgl1 fonts-noto-core
+          sudo apt-get install -y libegl1 libgl1 fonts-noto-core ffmpeg
       - name: Install render dependencies
         run: python -m pip install --disable-pip-version-check skia-python imageio-ffmpeg Pillow
       - name: Initialize pilot project
