@@ -19,6 +19,7 @@ except ImportError as exc:  # pragma: no cover - depends on local optional runti
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
 
 from .rig import blend_motion, build_skeleton, facial_pose, foot_plant_targets, sample_motion
+from .cinematic import draw_cinematic_effects
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -496,6 +497,7 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
         active_shot["dialogue"] = active_lines
         _draw_character(canvas, pose, local_time, active_shot, index, episode.get("_motion_library"))
     canvas.restore()
+    draw_cinematic_effects(canvas, width, height, shot, local_time)
 
     active_lines = [
         line for line in shot.get("dialogue", [])
