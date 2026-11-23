@@ -44,7 +44,7 @@ jobs:
             "id": "studio-art-direction-benchmark",
             "title": "اختبار إخراج وشخصيات جديد",
             "language": "ar-DZ",
-            "format": {"width": 540, "height": 960, "fps": 30, "duration_seconds": 10},
+            "format": {"width": 540, "height": 960, "fps": 30, "duration_seconds": 12},
             "characters": [
               {"id":"extra_006","name":"سامي","x":135,"y":735,"scale":0.72},
               {"id":"extra_014","name":"مراد","x":275,"y":735,"scale":0.72},
@@ -56,7 +56,7 @@ jobs:
             ],
             "shots": [
               {
-                "id":"roof-wide","duration_seconds":5,"location":"roof",
+                "id":"roof-wide","duration_seconds":6,"location":"roof",
                 "actors":["extra_006","extra_014","extra_021"],"action":"talk",
                 "positions":{
                   "extra_006":{"x":125,"y":735,"scale":0.70},
@@ -65,7 +65,7 @@ jobs:
                 },
                 "camera":{"move":{"from":{"x":0,"y":0,"zoom":1.0},"to":{"x":-8,"y":-10,"zoom":1.08}}},
                 "motion_tracks":{
-                  "extra_006":[{"start":0,"end":1.2,"action":"wait"},{"start":1.2,"end":5,"action":"explain","transition_seconds":0.25}],
+                  "extra_006":[{"start":0,"end":1.2,"action":"wait"},{"start":1.2,"end":6,"action":"explain","transition_seconds":0.25}],
                   "extra_014":[{"start":0,"end":1.0,"action":"think"},{"start":1.0,"end":2.0,"action":"point","transition_seconds":0.2},{"start":2.0,"end":5,"action":"talk","transition_seconds":0.2}],
                   "extra_021":[{"start":0,"end":2.2,"action":"listen"},{"start":2.2,"end":3.4,"action":"surprised","transition_seconds":0.15},{"start":3.4,"end":5,"action":"agree","transition_seconds":0.2}]
                 },
@@ -112,7 +112,7 @@ jobs:
           }
           (root/"continuity.json").write_text(json.dumps(ledger,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
-      - name: Validate and render all 300 frames
+      - name: Validate and render all 360 frames
         run: |
           python -m studio.cli validate projects/art-direction-benchmark
           python -m studio.cli render projects/art-direction-benchmark --resume
@@ -126,7 +126,7 @@ jobs:
           from pathlib import Path
           from PIL import Image, ImageOps, ImageDraw
           frames = Path("projects/art-direction-benchmark/renders/frames")
-          picks = [0,30,60,90,120,150,210,270]
+          picks = [0,36,72,108,144,180,252,324]
           thumbs=[]
           for n in picks:
               im=Image.open(frames/f"frame_{n:06d}.png").convert("RGB")
