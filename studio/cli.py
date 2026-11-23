@@ -146,6 +146,13 @@ def main(argv: list[str] | None = None) -> int:
     cast_add_cmd.add_argument("--x", type=float, default=700)
     cast_add_cmd.add_argument("--y", type=float, default=1450)
     cast_add_cmd.add_argument("--action", default="idle")
+    production_cmd = sub.add_parser("production-run", help="iterative render, full-frame audit, repair and delivery gates")
+    production_cmd.add_argument("project", type=Path)
+    production_cmd.add_argument("--repair-rounds", type=int, default=3)
+    approve_cmd = sub.add_parser("visual-approve", help="record explicit human visual review after inspecting the rendered episode")
+    approve_cmd.add_argument("project", type=Path)
+    approve_cmd.add_argument("--reviewer", required=True)
+    approve_cmd.add_argument("--notes", required=True)
     blend_cmd = sub.add_parser("blender-render", help="build and open an optional Blender scene")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
@@ -244,6 +251,23 @@ def main(argv: list[str] | None = None) -> int:
             attach_visemes(episode, shot_id=args.shot_id, speaker=args.speaker, cues=cues)
             args.episode.write_text(json.dumps(episode, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"Generated {len(cues)} mouth cues: {args.output}")
+        return 0
+    if args.command == "production-run":
+        from .production import run_production
+        report = run_production(args.project, max_repair_rounds=args.repair_rounds)
+        print("PRODUCTION " + report["status"])
+        print("Report: " + str(args.project / "production" / "production_run.json"))
+        for error in report.get("errors", []):
+            print("BLOCKED: " + error)
+        return 0 if report.get("status") == "delivered" else 1
+    if args.command == "visual-approve":
+        episode = read_json(args.project / "episode.json")
+        approval = {"episode_id": episode["id"], "approved": True,
+                    "reviewer": args.reviewer, "notes": args.notes}
+        target = args.project / "production" / "human_visual_approval.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        print("Visual approval recorded: " + str(target))
         return 0
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
