@@ -44,5 +44,17 @@ class RendererTests(unittest.TestCase):
             self.assertTrue((frame_dir / "frame_000001.png").is_file())
 
 
+    def test_resume_skips_existing_frames_and_repairs_empty_ones(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            frame_dir, first_count = render_episode_frames(project, start_frame=0, max_frames=2)
+            self.assertEqual(first_count, 2)
+            frame_dir.joinpath("frame_000001.png").write_bytes(b"")
+            _, resumed_count = render_episode_frames(project, start_frame=0, max_frames=2, resume=True)
+            self.assertEqual(resumed_count, 1)
+            self.assertGreater(frame_dir.joinpath("frame_000001.png").stat().st_size, 1000)
+
+
 if __name__ == "__main__":
     unittest.main()
