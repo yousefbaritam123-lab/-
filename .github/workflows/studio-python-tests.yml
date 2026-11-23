@@ -1,0 +1,22 @@
+name: Studio Python checks
+
+on:
+  push:
+    branches:
+      - studio-pro-foundation
+  pull_request:
+    branches:
+      - studio-pro-foundation
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run standard-library tests
+        run: python -m unittest discover -s tests -v
+      - name: Check CLI help
+        run: python -m studio.cli --help
