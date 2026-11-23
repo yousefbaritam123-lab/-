@@ -34,7 +34,8 @@ def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
     if not audio_path.is_file():
         raise FileNotFoundError(audio_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    command = [str(binary), "-f", "json", "-o", str(output_path), str(audio_path)]
+    raw_path = output_path.with_suffix(output_path.suffix + ".rhubarb.json")
+    command = [str(binary), "-f", "json", "-o", str(raw_path), str(audio_path)]
     if dialog_file:
         if not dialog_file.is_file():
             raise FileNotFoundError(dialog_file)
@@ -42,7 +43,9 @@ def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.returncode:
         raise RuntimeError(f"Rhubarb failed ({completed.returncode}): {completed.stderr.strip()}")
-    return convert_rhubarb_data(json.loads(output_path.read_text(encoding="utf-8")), offset=line_start)
+    cues = convert_rhubarb_data(json.loads(raw_path.read_text(encoding="utf-8")))
+    output_path.write_text(json.dumps({"speaker": speaker, "visemes": cues}, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    return cues
 
 def attach_visemes(episode: dict[str, Any], *, shot_id: str, speaker: str,
                    cues: list[dict[str, Any]]) -> None:
