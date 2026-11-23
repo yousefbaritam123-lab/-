@@ -1,6 +1,6 @@
 import unittest
 
-from studio.rig import build_skeleton, facial_pose, foot_plant_targets, sample_motion, solve_two_bone
+from studio.rig import blend_motion, build_skeleton, facial_pose, foot_plant_targets, sample_motion, solve_two_bone
 
 
 class CharacterRigTests(unittest.TestCase):
@@ -76,6 +76,12 @@ class CharacterRigTests(unittest.TestCase):
             pose = sample_motion(action, .3)
             self.assertIn("emotion", pose)
             self.assertIn("right_wrist", pose)
+
+    def test_motion_transition_crossfades_between_clips(self):
+        start = blend_motion("idle", "celebrate", 0.0, 0.4)
+        end = blend_motion("idle", "celebrate", 0.4, 0.4)
+        self.assertAlmostEqual(start["left_arm"], sample_motion("idle", 0)["left_arm"])
+        self.assertAlmostEqual(end["left_arm"], sample_motion("celebrate", 0)["left_arm"])
 
     def test_unknown_action_falls_back_to_idle(self):
         self.assertEqual(sample_motion("missing", .2), sample_motion("idle", .2))
