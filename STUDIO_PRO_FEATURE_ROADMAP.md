@@ -24,4 +24,4 @@ External tools: install Blender 4.x and add blender.exe to PATH; install Rhubarb
 
 ## Honest current status
 
-These adapters and planners are foundations, not proof of a finished professional pipeline. The 100-second 1080x1920 output remains an end-to-end acceptance test. Blender's bridge is currently a scene/reference importer, not a full character animation backend.
+These adapters and planners are foundations, not proof of a finished professional pipeline. The 100-second 1080x1920 output remains an end-to-end acceptance test. The Blender bridge has a rigid layered-puppet import path, but does not yet generate final animated shots from the episode timeline.
