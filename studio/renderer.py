@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from PIL import Image, ImageDraw, ImageFont, features
+
 try:
     import skia
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
@@ -206,6 +208,24 @@ def _draw_background(canvas: "skia.Canvas", width: int, height: int,
     sky_paint = _paint(skia.ColorWHITE, 1, skia.Paint.kFill_Style)
     sky_paint.setShader(shader)
     canvas.drawRect(skia.Rect.MakeWH(width, height), sky_paint)
+    # Algerian-neighborhood skyline: apartment blocks, balconies and shopfronts.
+    facade_colors = ("#E8D7B8", "#D9C7A5", "#CBB99B", "#E6D4B5")
+    for i, (left, block_w, top) in enumerate(((0.02, .19, .37), (.23, .17, .43), (.69, .18, .35), (.88, .15, .42))):
+        x0, x1, y0 = width * left, width * (left + block_w), height * top
+        canvas.drawRect(skia.Rect.MakeLTRB(x0, y0, x1, height * .80),
+                        _paint(_color(facade_colors[i]), 1, skia.Paint.kFill_Style))
+        canvas.drawRect(skia.Rect.MakeLTRB(x0, y0, x1, height * .80),
+                        _paint(_color("#796B5A"), 3, skia.Paint.kStroke_Style))
+        for row in range(3):
+            for col in range(2):
+                wx = x0 + width * (.035 + col * .075)
+                wy = y0 + height * (.055 + row * .105)
+                canvas.drawRect(skia.Rect.MakeLTRB(wx, wy, wx + width * .038, wy + height * .052),
+                                _paint(_color("#6B9AA8"), 1, skia.Paint.kFill_Style))
+                canvas.drawRect(skia.Rect.MakeLTRB(wx, wy, wx + width * .038, wy + height * .052),
+                                _paint(_color("#F4EBDD"), 3, skia.Paint.kStroke_Style))
+                canvas.drawLine(wx - 3, wy + height * .054, wx + width * .041, wy + height * .054,
+                                _paint(_color("#6E6256"), 4))
     # Distant hills and a few parallax clouds create depth without external assets.
     hill = _paint(_color((location or {}).get("hill", "#6DAD79")), 1, skia.Paint.kFill_Style)
     path = skia.Path()
@@ -230,6 +250,38 @@ def _draw_background(canvas: "skia.Canvas", width: int, height: int,
     canvas.drawLine(0, height * 0.79, width, height * 0.79, horizon)
 
 
+
+def _draw_dialogue_caption(output: Path, text: str, width: int, height: int) -> None:
+    """Draw timed dialogue captions; use RAQM for correct Arabic shaping when available."""
+    if not text:
+        return
+    try:
+        image = Image.open(output).convert("RGBA")
+        draw = ImageDraw.Draw(image, "RGBA")
+        candidates = [
+            Path(__file__).resolve().parent.parent / "assets" / "fonts" / "NotoSansArabic-Regular.ttf",
+            Path("C:/Windows/Fonts/arial.ttf"),
+            Path("C:/Windows/Fonts/segoeui.ttf"),
+            Path("/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"),
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        ]
+        font_path = next((p for p in candidates if p.is_file()), None)
+        raqm = bool(features.check_feature("raqm"))
+        layout = ImageFont.Layout.RAQM if raqm else ImageFont.Layout.BASIC
+        font = ImageFont.truetype(str(font_path), max(18, int(width * .047)), layout_engine=layout) if font_path else ImageFont.load_default()
+        pad = max(14, int(width * .045))
+        box_top = int(height * .84)
+        draw.rounded_rectangle((pad, box_top, width - pad, height - pad), radius=18,
+                               fill=(12, 18, 28, 218), outline=(255, 255, 255, 190), width=2)
+        kwargs = {"anchor": "mm", "font": font, "fill": (255, 255, 255, 255)}
+        if raqm:
+            kwargs.update({"direction": "rtl", "language": "ar"})
+        draw.multiline_text((width // 2, (box_top + height - pad) // 2), text, align="center", spacing=5, **kwargs)
+        image.convert("RGB").save(output, format="PNG", optimize=True)
+    except Exception as exc:
+        raise RuntimeError(f"Could not render dialogue caption: {exc}") from exc
+
+
 def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
     fmt = episode["format"]
     width, height = int(fmt["width"]), int(fmt["height"])
@@ -243,9 +295,18 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
     _draw_background(canvas, width, height, time_s, location)
 
     camera = shot.get("camera", {})
+    progress = clamp(local_time / max(float(shot.get("duration_seconds", 1)), 0.001), 0.0, 1.0)
+    camera_move = camera.get("move", {})
+    start_camera = camera_move.get("from", {})
+    end_camera = camera_move.get("to", {})
+    eased = smoothstep(progress)
     zoom = float(camera.get("zoom", 1.0))
     pan_x = float(camera.get("x", 0.0))
     pan_y = float(camera.get("y", 0.0))
+    if camera_move:
+        zoom = float(start_camera.get("zoom", zoom)) + (float(end_camera.get("zoom", zoom)) - float(start_camera.get("zoom", zoom))) * eased
+        pan_x = float(start_camera.get("x", pan_x)) + (float(end_camera.get("x", pan_x)) - float(start_camera.get("x", pan_x))) * eased
+        pan_y = float(start_camera.get("y", pan_y)) + (float(end_camera.get("y", pan_y)) - float(start_camera.get("y", pan_y))) * eased
     canvas.save()
     canvas.translate(width * 0.5, height * 0.5)
     canvas.scale(zoom, zoom)
@@ -262,8 +323,24 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
         # Shot-relative positions may override the episode's canonical character record.
         if "positions" in shot and actor_id in shot["positions"]:
             pose.update(shot["positions"][actor_id])
-        _draw_character(canvas, pose, local_time, shot, index, episode.get("_motion_library"))
+        movement = shot.get("movement", {}).get(actor_id)
+        if movement:
+            move_t = smoothstep(clamp(local_time / max(float(shot.get("duration_seconds", 1)), 0.001), 0.0, 1.0))
+            default_x = float(pose.get("x", 420 + index * 360))
+            pose["x"] = float(movement.get("from_x", default_x)) + (float(movement.get("to_x", default_x)) - float(movement.get("from_x", default_x))) * move_t
+        active_lines = [
+            line for line in shot.get("dialogue", [])
+            if float(line.get("start_seconds", 0.0)) <= local_time < float(line.get("end_seconds", shot.get("duration_seconds", 0)))
+        ]
+        active_shot = dict(shot)
+        active_shot["dialogue"] = active_lines
+        _draw_character(canvas, pose, local_time, active_shot, index, episode.get("_motion_library"))
     canvas.restore()
+
+    active_lines = [
+        line for line in shot.get("dialogue", [])
+        if float(line.get("start_seconds", 0.0)) <= local_time < float(line.get("end_seconds", shot.get("duration_seconds", 0)))
+    ]
 
     # Simple editorial title/caption safe-area marker only when explicitly requested.
     title = shot.get("title")
@@ -275,6 +352,8 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
     image.save(str(output), skia.kPNG, 100)
     if not output.is_file() or output.stat().st_size == 0:
         raise RuntimeError(f"Skia failed to encode frame at {time_s:.3f}s")
+    if active_lines:
+        _draw_dialogue_caption(output, active_lines[-1].get("text", ""), width, height)
 
 
 def render_episode_frames(project_dir: Path, start_frame: int = 0,
