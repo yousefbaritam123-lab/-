@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import Any
 
 BEAT_PERFORMANCES = {
-    "cold_open": ("surprised", "think", "listen", "look"),
+    "cold_open": ("surprised", "think", "listen", "listen"),
     "setup": ("walk", "talk", "wait", "listen"),
     "inciting_incident": ("surprised", "point", "disagree", "listen"),
     "reaction": ("think", "explain", "listen", "agree"),
-    "escalation": ("run", "dodge", "surprised", "react"),
+    "escalation": ("run", "dodge", "surprised", "surprised"),
     "turning_point": ("think", "explain", "listen", "agree"),
     "payoff": ("celebrate_small", "agree", "laugh", "celebrate"),
     "cliffhanger": ("think", "surprised", "wait", "look"),
