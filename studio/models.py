@@ -7,7 +7,7 @@ from typing import Any
 
 
 REQUIRED_EPISODE_KEYS = {"id", "title", "language", "format", "characters", "locations", "shots"}
-REQUIRED_FORMAT = {"width": 1080, "height": 1920, "fps": 30, "duration_seconds": 100}
+REQUIRED_FORMAT = {"fps": 30}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -41,6 +41,17 @@ def validate_episode(project_dir: Path) -> list[str]:
         for key, expected in REQUIRED_FORMAT.items():
             if fmt.get(key) != expected:
                 errors.append(f"format.{key} must be {expected}")
+        width, height = fmt.get("width"), fmt.get("height")
+        if not isinstance(width, int) or width < 240:
+            errors.append("format.width must be an integer >= 240")
+        if not isinstance(height, int) or height < 426:
+            errors.append("format.height must be an integer >= 426")
+        if isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0:
+            if abs((width / height) - (9 / 16)) > 0.002:
+                errors.append("format must use a 9:16 portrait aspect ratio")
+        duration = fmt.get("duration_seconds")
+        if not isinstance(duration, (int, float)) or isinstance(duration, bool) or duration <= 0:
+            errors.append("format.duration_seconds must be a positive number")
 
     chars = doc.get("characters", [])
     if not isinstance(chars, list):
