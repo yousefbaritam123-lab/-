@@ -12,6 +12,8 @@ from typing import Any
 
 try:
     import skia
+
+from .rig import build_skeleton, sample_motion
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
 
@@ -63,95 +65,136 @@ def _limb(a: tuple[float, float], length: float, angle: float) -> tuple[float, f
 
 
 def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
-                    shot: dict[str, Any], index: int) -> None:
+                    shot: dict[str, Any], index: int,
+                    motion_library: dict[str, Any] | None = None) -> None:
+    """Render a layered character from its canonical rig and sampled keyframe pose."""
     x = float(actor.get("x", 420 + index * 360))
     y = float(actor.get("y", 1450))
     scale = float(actor.get("scale", 1.0))
-    action = str(actor.get("action", shot.get("action", "idle")))
-    phase = time_s * (7.0 if action in ("run", "walk") else 2.2) + float(actor.get("phase", index * 1.7))
-    moving = action in ("walk", "run")
-    stride = math.sin(phase) if moving else 0.0
-    bob = abs(math.sin(phase)) * (25 if action == "run" else 12) if moving else math.sin(phase) * 3
-    talk = actor.get("talk", False) or any(
-        line.get("speaker") == actor.get("id") for line in shot.get("dialogue", [])
-    )
-    wave = action == "wave" or actor.get("gesture") == "wave"
-    jump = action == "jump"
-    jump_y = abs(math.sin(min(time_s * 3.0, math.pi))) * 120 if jump else 0
+    dialogue_active = any(line.get("speaker") == actor.get("id") for line in shot.get("dialogue", []))
+    action = str(actor.get("action", "talk" if dialogue_active else shot.get("action", "idle")))
+    rig = actor.get("_rig", {})
+    appearance = rig.get("appearance", {})
+    proportions = rig.get("proportions", {})
+    pose = sample_motion(action, time_s, motion_library)
+    for key, value in actor.get("pose", {}).items():
+        if key in pose:
+            pose[key] = float(value)
+    joints = build_skeleton(pose, proportions)
+
+    def point(name: str) -> tuple[float, float]:
+        px, py = joints[name]
+        return px, py - 180.0
+
+    ink = _color(appearance.get("outline", actor.get("outline", "#171923")))
+    skin = _color(appearance.get("skin", actor.get("skin", "#F3D2B2")))
+    shirt = _color(appearance.get("shirt", actor.get("shirt", "#E9E6DF")))
+    trousers = _color(appearance.get("trousers", actor.get("trousers", "#26364A")))
+    shoes = _color(appearance.get("shoes", actor.get("shoes", appearance.get("accent", "#C62828"))))
+    accent = _color(appearance.get("accent", actor.get("accent", "#C62828")))
+    hair = _color(appearance.get("hair", "#24212A"))
+    outline_width = float(rig.get("design_lock", {}).get("outline_width", 7))
 
     canvas.save()
-    canvas.translate(x, y - bob - jump_y)
+    canvas.translate(x, y - float(pose.get("root_y", 0.0)))
     canvas.scale(scale, scale)
     if actor.get("flip", False):
         canvas.scale(-1, 1)
 
-    rig_appearance = actor.get("_rig", {}).get("appearance", {})
-    ink = _color(rig_appearance.get("outline", actor.get("outline", "#171923")))
-    skin = _color(rig_appearance.get("skin", actor.get("skin", "#F4F0E8")))
-    accent = _color(rig_appearance.get("accent", actor.get("accent", "#E34B4B")))
-    shadow = _paint(skia.ColorSetARGB(48, 0, 0, 0), 1, skia.Paint.kFill_Style)
-    canvas.drawOval(skia.Rect.MakeLTRB(-72, -5, 72, 17), shadow)
+    shadow = _paint(skia.ColorSetARGB(52, 0, 0, 0), 1, skia.Paint.kFill_Style)
+    canvas.drawOval(skia.Rect.MakeLTRB(-76, -5, 76, 18), shadow)
+    hip = point("hip")
+    left_knee, left_foot = point("left_knee"), point("left_foot")
+    right_knee, right_foot = point("right_knee"), point("right_foot")
+    left_shoulder, right_shoulder = point("left_shoulder"), point("right_shoulder")
+    left_elbow, left_hand = point("left_elbow"), point("left_hand")
+    right_elbow, right_hand = point("right_elbow"), point("right_hand")
 
-    hip = (0.0, -180.0)
-    chest = (0.0, -355.0)
-    neck = (0.0, -390.0)
-    head = (0.0, -465.0)
-    leg_swing = stride * (42 if action == "run" else 28)
-    left_knee = _limb(hip, 105, 90 + leg_swing)
-    right_knee = _limb(hip, 105, 90 - leg_swing)
-    left_foot = _limb(left_knee, 100, 90 - leg_swing * 0.55)
-    right_foot = _limb(right_knee, 100, 90 + leg_swing * 0.55)
-    left_shoulder = (-48.0, -345.0)
-    right_shoulder = (48.0, -345.0)
-    arm_swing = -stride * 38 if moving else math.sin(phase) * 5
-    left_elbow = _limb(left_shoulder, 92, 115 + arm_swing)
-    right_elbow = _limb(right_shoulder, 92, 65 - arm_swing)
-    left_hand = _limb(left_elbow, 78, 115 + arm_swing * 0.5)
-    right_hand = _limb(right_elbow, 78, 65 - arm_swing * 0.5)
-    if wave:
-        right_elbow = (82.0, -455.0 + math.sin(time_s * 8) * 8)
-        right_hand = (125.0, -510.0 + math.sin(time_s * 8) * 18)
+    def limb(a: tuple[float, float], b: tuple[float, float], color: int, width: float) -> None:
+        _line(canvas, a, b, ink, width + outline_width * 0.55)
+        _line(canvas, a, b, color, width)
 
-    # Legs, shoes, torso and arms are layered to preserve a clean silhouette.
-    limb_width = 22.0
-    _line(canvas, hip, left_knee, ink, limb_width)
-    _line(canvas, left_knee, left_foot, ink, limb_width * 0.82)
-    _line(canvas, hip, right_knee, ink, limb_width)
-    _line(canvas, right_knee, right_foot, ink, limb_width * 0.82)
-    _line(canvas, (left_foot[0] - 8, left_foot[1]), (left_foot[0] + 38, left_foot[1]), accent, 19)
-    _line(canvas, (right_foot[0] - 8, right_foot[1]), (right_foot[0] + 38, right_foot[1]), accent, 19)
+    limb(hip, left_knee, trousers, 17)
+    limb(left_knee, left_foot, trousers, 15)
+    limb(hip, right_knee, trousers, 17)
+    limb(right_knee, right_foot, trousers, 15)
+    for fx, fy in (left_foot, right_foot):
+        canvas.drawRoundRect(skia.Rect.MakeLTRB(fx - 12, fy - 10, fx + 43, fy + 12),
+                             9, 9, _paint(ink, 1, skia.Paint.kFill_Style))
+        canvas.drawRoundRect(skia.Rect.MakeLTRB(fx - 8, fy - 7, fx + 39, fy + 8),
+                             7, 7, _paint(shoes, 1, skia.Paint.kFill_Style))
 
-    torso_paint = _paint(ink, 30)
-    canvas.drawLine(hip[0], hip[1], chest[0], chest[1], torso_paint)
-    canvas.drawLine(chest[0], chest[1], neck[0], neck[1], _paint(ink, 17))
-    _line(canvas, left_shoulder, left_elbow, ink, 20)
-    _line(canvas, left_elbow, left_hand, ink, 17)
-    _line(canvas, right_shoulder, right_elbow, ink, 20)
-    _line(canvas, right_elbow, right_hand, ink, 17)
-    canvas.drawCircle(right_hand[0], right_hand[1], 12, _paint(skin, 1, skia.Paint.kFill_Style))
-    canvas.drawCircle(left_hand[0], left_hand[1], 12, _paint(skin, 1, skia.Paint.kFill_Style))
+    limb(left_shoulder, left_elbow, shirt, 16)
+    limb(left_elbow, left_hand, skin, 12)
+    chest = point("chest")
+    neck = point("neck")
+    torso = skia.Path()
+    torso.moveTo(left_shoulder[0] - 8, left_shoulder[1] - 3)
+    torso.quadTo(-28, chest[1] - 12, hip[0] - 30, hip[1] - 2)
+    torso.lineTo(hip[0] + 30, hip[1] - 2)
+    torso.quadTo(28, chest[1] - 12, right_shoulder[0] + 8, right_shoulder[1] - 3)
+    torso.close()
+    canvas.drawPath(torso, _paint(ink, outline_width, skia.Paint.kStroke_Style))
+    canvas.drawPath(torso, _paint(shirt, 1, skia.Paint.kFill_Style))
+    _line(canvas, neck, (neck[0], neck[1] + 30), skin, 20)
 
-    # Head, eyes and mouth are independent drawing layers.
-    canvas.drawCircle(head[0], head[1], 72, _paint(ink, 7, skia.Paint.kStroke_Style))
-    canvas.drawCircle(head[0], head[1], 68, _paint(skin, 1, skia.Paint.kFill_Style))
-    eye_y = head[1] - 8
-    canvas.drawCircle(-24, eye_y, 6, _paint(ink, 1, skia.Paint.kFill_Style))
-    canvas.drawCircle(24, eye_y, 6, _paint(ink, 1, skia.Paint.kFill_Style))
-    mouth = skia.Path()
-    mouth.moveTo(-17, head[1] + 28)
-    mouth.quadTo(0, head[1] + (48 if talk and int(time_s * 8) % 2 else 39), 17, head[1] + 28)
-    canvas.drawPath(mouth, _paint(ink, 5))
-    if rig_appearance.get("scarf", actor.get("scarf", False)):
+    if appearance.get("scarf", actor.get("scarf", False)):
+        flutter = math.sin(time_s * 7.0) * (8 if action in ("walk", "run") else 3)
         scarf = skia.Path()
-        scarf.moveTo(-48, -365)
-        scarf.quadTo(0, -325, 50, -365)
-        scarf.lineTo(82, -280)
-        scarf.lineTo(55, -292)
-        scarf.lineTo(30, -340)
+        scarf.moveTo(-43, -365)
+        scarf.quadTo(-3, -337, 42, -365)
+        scarf.lineTo(68 + flutter, -285 + flutter * .25)
+        scarf.lineTo(48 + flutter, -296 + flutter * .25)
+        scarf.lineTo(22, -342)
         scarf.close()
+        canvas.drawPath(scarf, _paint(ink, 3, skia.Paint.kStroke_Style))
         canvas.drawPath(scarf, _paint(accent, 1, skia.Paint.kFill_Style))
-    canvas.restore()
 
+    limb(right_shoulder, right_elbow, shirt, 16)
+    limb(right_elbow, right_hand, skin, 12)
+    for hx, hy in (left_hand, right_hand):
+        canvas.drawCircle(hx, hy, 10, _paint(ink, 2, skia.Paint.kStroke_Style))
+        canvas.drawCircle(hx, hy, 8, _paint(skin, 1, skia.Paint.kFill_Style))
+
+    head_x, head_y = point("head")
+    radius = float(appearance.get("head_radius", 72))
+    canvas.drawOval(skia.Rect.MakeLTRB(head_x - radius, head_y - radius,
+                                       head_x + radius, head_y + radius),
+                    _paint(ink, outline_width, skia.Paint.kStroke_Style))
+    canvas.drawOval(skia.Rect.MakeLTRB(head_x - radius + 4, head_y - radius + 4,
+                                       head_x + radius - 4, head_y + radius - 4),
+                    _paint(skin, 1, skia.Paint.kFill_Style))
+    hair_path = skia.Path()
+    hair_path.moveTo(head_x - radius + 5, head_y - 15)
+    hair_path.quadTo(head_x - radius * .72, head_y - radius - 15,
+                     head_x + 2, head_y - radius + 1)
+    hair_path.quadTo(head_x + radius * .72, head_y - radius - 8,
+                     head_x + radius - 4, head_y - 15)
+    hair_path.quadTo(head_x + radius * .48, head_y - 32,
+                     head_x + 12, head_y - 39)
+    hair_path.quadTo(head_x - radius * .48, head_y - 28,
+                     head_x - radius + 5, head_y - 15)
+    hair_path.close()
+    canvas.drawPath(hair_path, _paint(hair, 1, skia.Paint.kFill_Style))
+    eye_spacing = float(appearance.get("eye_spacing", 48)) / 2
+    eye_y = head_y - 5
+    brow_raise = float(pose.get("brow", 0.0)) * 4
+    _line(canvas, (head_x - eye_spacing - 8, eye_y - 15 - brow_raise),
+          (head_x - eye_spacing + 7, eye_y - 17 - brow_raise), ink, 4)
+    _line(canvas, (head_x + eye_spacing - 7, eye_y - 17 - brow_raise),
+          (head_x + eye_spacing + 8, eye_y - 15 - brow_raise), ink, 4)
+    canvas.drawCircle(head_x - eye_spacing, eye_y, 5, _paint(ink, 1, skia.Paint.kFill_Style))
+    canvas.drawCircle(head_x + eye_spacing, eye_y, 5, _paint(ink, 1, skia.Paint.kFill_Style))
+    if float(pose.get("mouth", 0.0)) > .35:
+        canvas.drawOval(skia.Rect.MakeLTRB(head_x - 10, head_y + 22,
+                                           head_x + 10, head_y + 43),
+                        _paint(ink, 2, skia.Paint.kFill_Style))
+    else:
+        mouth = skia.Path()
+        mouth.moveTo(head_x - 15, head_y + 30)
+        mouth.quadTo(head_x, head_y + 39, head_x + 15, head_y + 30)
+        canvas.drawPath(mouth, _paint(ink, 4))
+    canvas.restore()
 
 def _draw_background(canvas: "skia.Canvas", width: int, height: int,
                      time_s: float, location: dict[str, Any] | None) -> None:
@@ -219,7 +262,7 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
         # Shot-relative positions may override the episode's canonical character record.
         if "positions" in shot and actor_id in shot["positions"]:
             pose.update(shot["positions"][actor_id])
-        _draw_character(canvas, pose, local_time, shot, index)
+        _draw_character(canvas, pose, local_time, shot, index, episode.get("_motion_library"))
     canvas.restore()
 
     # Simple editorial title/caption safe-area marker only when explicitly requested.
@@ -247,6 +290,9 @@ def render_episode_frames(project_dir: Path, start_frame: int = 0,
             if not rig_path.is_file():
                 raise FileNotFoundError(f"Missing character rig: {rig_path}")
             character["_rig"] = json.loads(rig_path.read_text(encoding="utf-8"))
+    motion_path = project_dir / "assets" / "motions" / "motion_library.json"
+    if motion_path.is_file():
+        episode["_motion_library"] = json.loads(motion_path.read_text(encoding="utf-8"))
     fps = int(episode["format"]["fps"])
     total = int(round(float(episode["format"]["duration_seconds"]) * fps))
     start = max(0, start_frame)
