@@ -27,7 +27,7 @@ def convert_rhubarb_data(data: dict[str, Any], *, offset: float = 0.0) -> list[d
 
 def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
                      line_start: float = 0.0, executable: str = "rhubarb",
-                     dialog_text: str | None = None) -> list[dict[str, Any]]:
+                     dialog_file: Path | None = None) -> list[dict[str, Any]]:
     binary = shutil.which(executable) if not Path(executable).is_file() else executable
     if not binary:
         raise RuntimeError("Rhubarb Lip Sync was not found. Install it and add 'rhubarb' to PATH.")
@@ -35,8 +35,10 @@ def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
         raise FileNotFoundError(audio_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     command = [str(binary), "-f", "json", "-o", str(output_path), str(audio_path)]
-    if dialog_text:
-        command.extend(["-d", dialog_text])
+    if dialog_file:
+        if not dialog_file.is_file():
+            raise FileNotFoundError(dialog_file)
+        command.extend(["-d", str(dialog_file)])
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.returncode:
         raise RuntimeError(f"Rhubarb failed ({completed.returncode}): {completed.stderr.strip()}")
