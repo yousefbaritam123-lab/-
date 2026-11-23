@@ -18,7 +18,7 @@ try:
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
 
-from .rig import build_skeleton, facial_pose, sample_motion
+from .rig import build_skeleton, facial_pose, foot_plant_targets, sample_motion
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -81,6 +81,13 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     appearance = {**rig.get("appearance", {}), **actor.get("appearance", {})}
     proportions = {**rig.get("proportions", {}), **actor.get("proportions", {})}
     pose = sample_motion(action, time_s, motion_library)
+    plant = actor.get("_foot_plant")
+    if plant and action in ("walk", "run"):
+        pose.update(foot_plant_targets(
+            action, time_s, proportions,
+            root_dx_since_stance=float(plant.get("root_dx_since_stance", 0.0)),
+            root_y=float(pose.get("root_y", 0.0)),
+        ))
     for key, value in actor.get("pose", {}).items():
         if key in pose:
             pose[key] = float(value)
@@ -352,9 +359,25 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
             pose.update(shot["positions"][actor_id])
         movement = shot.get("movement", {}).get(actor_id)
         if movement:
-            move_t = smoothstep(clamp(local_time / max(float(shot.get("duration_seconds", 1)), 0.001), 0.0, 1.0))
+            shot_duration = max(float(shot.get("duration_seconds", 1)), 0.001)
+            move_t = smoothstep(clamp(local_time / shot_duration, 0.0, 1.0))
             default_x = float(pose.get("x", 420 + index * 360))
-            pose["x"] = float(movement.get("from_x", default_x)) + (float(movement.get("to_x", default_x)) - float(movement.get("from_x", default_x))) * move_t
+            from_x = float(movement.get("from_x", default_x))
+            to_x = float(movement.get("to_x", default_x))
+            pose["x"] = from_x + (to_x - from_x) * move_t
+            action_name = str(pose.get("action", shot.get("action", "idle")))
+            if action_name in ("walk", "run"):
+                cycle_duration = 0.8 if action_name == "walk" else 0.48
+                phase_time = local_time % cycle_duration
+                stance_offset = 0.0 if phase_time < cycle_duration * 0.5 else cycle_duration * 0.5
+                stance_start = local_time - phase_time + stance_offset
+                stance_progress = smoothstep(clamp(stance_start / shot_duration, 0.0, 1.0))
+                current_root = (to_x - from_x) * move_t
+                stance_root = (to_x - from_x) * stance_progress
+                actor_scale = max(abs(float(pose.get("scale", 1.0))), 1e-6)
+                pose["_foot_plant"] = {
+                    "root_dx_since_stance": (current_root - stance_root) / actor_scale
+                }
         active_lines = [
             line for line in shot.get("dialogue", [])
             if float(line.get("start_seconds", 0.0)) <= local_time < float(line.get("end_seconds", shot.get("duration_seconds", 0)))
