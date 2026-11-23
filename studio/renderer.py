@@ -205,13 +205,32 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     limb(right_elbow, right_hand, skin, 12)
     for side, (hx, hy) in (("left", left_hand), ("right", right_hand)):
         wx, wy = point(f"{side}_wrist")
-        _line(canvas, (wx, wy), (hx, hy), ink, 3)
-        canvas.drawCircle(hx, hy, 10, _paint(ink, 2, skia.Paint.kStroke_Style))
-        canvas.drawCircle(hx, hy, 8, _paint(skin, 1, skia.Paint.kFill_Style))
+        # Palm is a small oriented capsule; each digit receives an outline,
+        # a tapered-looking inner stroke and a subtle fingertip highlight.
+        dx, dy = hx - wx, hy - wy
+        hand_angle = math.atan2(dy, dx)
+        palm_cx = hx + math.cos(hand_angle) * 7
+        palm_cy = hy + math.sin(hand_angle) * 7
+        canvas.save()
+        canvas.translate(palm_cx, palm_cy)
+        canvas.rotate(math.degrees(hand_angle))
+        canvas.drawRoundRect(skia.Rect.MakeLTRB(-9, -11, 20, 11), 9, 9,
+                             _paint(ink, 1, skia.Paint.kFill_Style))
+        canvas.drawRoundRect(skia.Rect.MakeLTRB(-6, -8, 17, 8), 7, 7,
+                             _paint(skin, 1, skia.Paint.kFill_Style))
+        canvas.restore()
         finger_points = joints[f"{side}_fingers"]
-        for fx, fy in finger_points:
+        for finger_index, (fx, fy) in enumerate(finger_points):
             fy -= 180.0
-            _line(canvas, (hx, hy), (fx, fy), skin, 3)
+            # Slightly different widths make the thumb and little finger read
+            # separately instead of five identical spokes.
+            width = 4.2 if finger_index in (0, 4) else 3.5
+            mid = (hx + (fx - hx) * .56, hy + (fy - hy) * .56)
+            _line(canvas, (hx, hy), mid, ink, width + 1.8)
+            _line(canvas, mid, (fx, fy), ink, width + 1.8)
+            _line(canvas, (hx, hy), mid, skin, width)
+            _line(canvas, mid, (fx, fy), skin, width)
+            canvas.drawCircle(fx, fy, width * .52, _paint(skin, 1, skia.Paint.kFill_Style))
 
     head_x, head_y = point("head")
     radius = float(appearance.get("head_radius", 72))
@@ -320,6 +339,54 @@ def _draw_background(canvas: "skia.Canvas", width: int, height: int,
     canvas.drawRect(skia.Rect.MakeLTRB(0, height * 0.79, width, height), ground)
     horizon = _paint(skia.ColorSetARGB(70, 255, 255, 255), 3)
     canvas.drawLine(0, height * 0.79, width, height * 0.79, horizon)
+
+    # Environment-specific set dressing; all geometry is deterministic and reusable.
+    environment = str((location or {}).get("environment", "street")).lower()
+    detail = _paint(_color((location or {}).get("detail", "#D8C4A2")), 1, skia.Paint.kFill_Style)
+    if environment in ("room", "classroom"):
+        wall = _paint(_color((location or {}).get("wall", "#E9E0D0")), 1, skia.Paint.kFill_Style)
+        canvas.drawRect(skia.Rect.MakeLTRB(0, height*.60, width, height*.79), wall)
+        canvas.drawRect(skia.Rect.MakeLTRB(width*.12, height*.30, width*.43, height*.52),
+                        _paint(_color("#75AFC8"), 1, skia.Paint.kFill_Style))
+        canvas.drawRect(skia.Rect.MakeLTRB(width*.10, height*.285, width*.45, height*.305),
+                        _paint(_color("#765D48"), 1, skia.Paint.kFill_Style))
+        if environment == "classroom":
+            canvas.drawRect(skia.Rect.MakeLTRB(width*.12, height*.57, width*.88, height*.61),
+                            _paint(_color("#79583D"), 1, skia.Paint.kFill_Style))
+            for i in range(3):
+                xx=width*(.20+i*.25)
+                canvas.drawRect(skia.Rect.MakeLTRB(xx,height*.61,xx+width*.12,height*.66),
+                                _paint(_color("#B98554"),1,skia.Paint.kFill_Style))
+    elif environment == "beach":
+        canvas.drawRect(skia.Rect.MakeLTRB(0,height*.68,width,height*.79),
+                        _paint(_color("#E8C77C"),1,skia.Paint.kFill_Style))
+        canvas.drawCircle(width*.78,height*.20,height*.07,
+                          _paint(_color("#FFD76A"),1,skia.Paint.kFill_Style))
+        for i in range(4):
+            yy=height*(.70+i*.022)
+            canvas.drawLine(0,yy,width,yy,_paint(skia.ColorSetARGB(95,255,255,255),3))
+    elif environment == "rooftop":
+        canvas.drawRect(skia.Rect.MakeLTRB(0,height*.72,width,height*.79),
+                        _paint(_color("#B8A38A"),1,skia.Paint.kFill_Style))
+        for xx in (0.08,.34,.68,.91):
+            canvas.drawRect(skia.Rect.MakeLTRB(width*xx,height*.54,width*(xx+.08),height*.72),
+                            _paint(_color("#D6C7AF"),1,skia.Paint.kFill_Style))
+    elif environment == "park":
+        for xx, yy, rr in ((.12,.64,.055),(.82,.62,.07),(.93,.68,.045)):
+            canvas.drawRect(skia.Rect.MakeLTRB(width*xx-width*.009,height*yy,width*xx+width*.009,height*.80),
+                            _paint(_color("#795B3B"),1,skia.Paint.kFill_Style))
+            canvas.drawCircle(width*xx,height*yy-height*.045,height*rr,
+                              _paint(_color("#477D4E"),1,skia.Paint.kFill_Style))
+    weather = str((location or {}).get("weather", "clear")).lower()
+    if weather == "rain":
+        rain = _paint(skia.ColorSetARGB(95, 225, 240, 255), 2)
+        for i in range(42):
+            rx = (i*97 + time_s*170) % (width+40) - 20
+            ry = (i*137 + time_s*520) % height
+            canvas.drawLine(rx, ry, rx-12, ry+30, rain)
+    elif weather == "fog":
+        fog = _paint(skia.ColorSetARGB(45, 245, 246, 242), 1, skia.Paint.kFill_Style)
+        canvas.drawRect(skia.Rect.MakeWH(width,height), fog)
 
 
 
