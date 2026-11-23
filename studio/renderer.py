@@ -20,6 +20,7 @@ except ImportError as exc:  # pragma: no cover - depends on local optional runti
 
 from .rig import blend_motion, build_skeleton, facial_pose, foot_plant_targets, sample_motion
 from .cinematic import draw_cinematic_effects
+from .motion_library import active_track_segment, resolve_motion
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -77,6 +78,7 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     scale = float(actor.get("scale", 1.0))
     dialogue_active = any(line.get("speaker") == actor.get("id") for line in shot.get("dialogue", []))
     action = str(actor.get("action", "talk" if dialogue_active else shot.get("action", "idle")))
+    motion_time = float(actor.get("_motion_time", time_s))
     rig = actor.get("_rig", {})
     # Character-instance overrides let the 60-profile catalog share one rig topology.
     appearance = {**rig.get("appearance", {}), **actor.get("appearance", {})}
@@ -90,7 +92,7 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
             float(transition.get("duration_seconds", 0.25)), motion_library,
         )
     else:
-        pose = sample_motion(action, time_s, motion_library)
+        pose = sample_motion(action, motion_time, motion_library)
     plant = actor.get("_foot_plant")
     if plant and action in ("walk", "run"):
         pose.update(foot_plant_targets(
@@ -98,6 +100,9 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
             root_dx_since_stance=float(plant.get("root_dx_since_stance", 0.0)),
             root_y=float(pose.get("root_y", 0.0)),
         ))
+    for key, value in actor.get("_motion_pose", {}).items():
+        if key in pose:
+            pose[key] = float(value)
     for key, value in actor.get("pose", {}).items():
         if key in pose:
             pose[key] = float(value)
@@ -464,6 +469,29 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
         # Shot-relative positions may override the episode's canonical character record.
         if "positions" in shot and actor_id in shot["positions"]:
             pose.update(shot["positions"][actor_id])
+        # A shot can contain a time-coded sequence of reusable actions for each actor.
+        # Each segment has its own clock, so scrubbing/resume renders remain deterministic.
+        motion_track = shot.get("motion_tracks", {}).get(actor_id, pose.get("motion_track", []))
+        segment, segment_time = active_track_segment(motion_track, local_time) if motion_track else (None, local_time)
+        if segment is not None:
+            requested_action = str(segment.get("action", "idle"))
+            resolved_action, overlay = resolve_motion(requested_action, episode.get("_motion_library"))
+            pose["action"] = resolved_action
+            pose["_motion_time"] = segment_time
+            pose["_motion_pose"] = {**overlay, **segment.get("pose", {})}
+            transition_seconds = float(segment.get("transition_seconds", 0.0))
+            ordered_track = sorted(motion_track, key=lambda item: float(item["start"]))
+            previous = next((item for item in reversed(ordered_track)
+                             if float(item["end"]) <= float(segment["start"])), None)
+            if previous and transition_seconds > 0:
+                previous_action, _ = resolve_motion(str(previous["action"]), episode.get("_motion_library"))
+                pose["transition"] = {
+                    "from_action": previous_action,
+                    "start_seconds": float(segment["start"]),
+                    "duration_seconds": transition_seconds,
+                }
+            else:
+                pose.pop("transition", None)
         movement = shot.get("movement", {}).get(actor_id)
         if movement:
             shot_duration = max(float(shot.get("duration_seconds", 1)), 0.001)
