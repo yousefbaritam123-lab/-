@@ -13,6 +13,8 @@ POSE_KEYS = (
     "right_arm", "right_elbow", "left_leg", "left_knee",
     "right_leg", "right_knee", "left_wrist", "right_wrist",
     "left_hand_spread", "right_hand_spread", "left_foot_angle", "right_foot_angle",
+    "left_thumb_curl", "left_index_curl", "left_middle_curl", "left_ring_curl", "left_little_curl",
+    "right_thumb_curl", "right_index_curl", "right_middle_curl", "right_ring_curl", "right_little_curl",
     "gaze_x", "gaze_y", "blink", "mouth", "brow", "emotion",
     "left_hand_target_x", "left_hand_target_y", "right_hand_target_x", "right_hand_target_y",
     "left_ankle_target_x", "left_ankle_target_y", "right_ankle_target_x", "right_ankle_target_y",
@@ -304,10 +306,17 @@ def build_skeleton(pose: dict[str, float], proportions: dict[str, float] | None 
         hand_spread = _clamp(float(pose.get(f"{side}_hand_spread", 0.5)), 0.0, 1.0)
         fingers = []
         # Five stylized digits: four-finger fan plus an opposing thumb.
-        for finger_index in range(4):
+        finger_names = ("index", "middle", "ring", "little")
+        for finger_index, finger_name in enumerate(finger_names):
             fan = (finger_index - 1.5) * (6.0 + 9.0 * hand_spread)
-            fingers.append(_point(hand, length("finger", 17), elbow_angle + wrist_delta + fan))
-        fingers.append(_point(hand, length("finger", 15), elbow_angle + wrist_delta + 48.0 * sign))
+            curl = _clamp(float(pose.get(f"{side}_{finger_name}_curl", 0.0)), 0.0, 1.0)
+            finger_length = length("finger", 17) * (1.0 - .34 * curl)
+            finger_angle = elbow_angle + wrist_delta + fan + curl * 28.0 * sign
+            fingers.append(_point(hand, finger_length, finger_angle))
+        thumb_curl = _clamp(float(pose.get(f"{side}_thumb_curl", 0.0)), 0.0, 1.0)
+        thumb_length = length("finger", 15) * (1.0 - .30 * thumb_curl)
+        thumb_angle = elbow_angle + wrist_delta + sign * (48.0 - 25.0 * thumb_curl)
+        fingers.append(_point(hand, thumb_length, thumb_angle))
         joints[f"{side}_wrist"] = wrist
         joints[f"{side}_toe"] = toe
         joints[f"{side}_fingers"] = tuple(fingers)
