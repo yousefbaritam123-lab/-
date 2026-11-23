@@ -75,7 +75,22 @@
           "start_seconds": 1.1,
           "end_seconds": 4.8
         }
-      ]
+      ],
+      "motion_tracks": {
+        "youssef": [
+          {
+            "start": 0,
+            "end": 3.4,
+            "action": "walk"
+          },
+          {
+            "start": 3.4,
+            "end": 5,
+            "action": "wait",
+            "transition_seconds": 0.2
+          }
+        ]
+      }
     },
     {
       "id": "shot-002",
@@ -114,7 +129,35 @@
           "start_seconds": 2.8,
           "end_seconds": 4.8
         }
-      ]
+      ],
+      "motion_tracks": {
+        "adam": [
+          {
+            "start": 0,
+            "end": 1.4,
+            "action": "greet"
+          },
+          {
+            "start": 1.4,
+            "end": 5,
+            "action": "talk",
+            "transition_seconds": 0.2
+          }
+        ],
+        "youssef": [
+          {
+            "start": 0,
+            "end": 1.2,
+            "action": "agree"
+          },
+          {
+            "start": 1.2,
+            "end": 5,
+            "action": "talk",
+            "transition_seconds": 0.2
+          }
+        ]
+      }
     },
     {
       "id": "shot-003",
