@@ -14,6 +14,8 @@ POSE_KEYS = (
     "right_leg", "right_knee", "left_wrist", "right_wrist",
     "left_hand_spread", "right_hand_spread", "left_foot_angle", "right_foot_angle",
     "gaze_x", "gaze_y", "blink", "mouth", "brow", "emotion",
+    "left_hand_target_x", "left_hand_target_y", "right_hand_target_x", "right_hand_target_y",
+    "left_ankle_target_x", "left_ankle_target_y", "right_ankle_target_x", "right_ankle_target_y",
 )
 
 DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
@@ -203,6 +205,15 @@ def build_skeleton(pose: dict[str, float], proportions: dict[str, float] | None 
         elbow = _point(shoulder, length("upper_arm", 92), arm)
         wrist_delta = _clamp(float(pose.get(f"{side}_wrist", 0.0)), -90.0, 90.0)
         wrist = _point(elbow, length("forearm", 78), elbow_angle)
+        target_x = pose.get(f"{side}_hand_target_x")
+        target_y = pose.get(f"{side}_hand_target_y")
+        if target_x is not None and target_y is not None:
+            elbow, wrist = solve_two_bone(
+                shoulder, (float(target_x), float(target_y)),
+                length("upper_arm", 92), length("forearm", 78),
+                bend=float(pose.get(f"{side}_ik_bend", sign)),
+            )
+            elbow_angle = math.degrees(math.atan2(wrist[1] - elbow[1], wrist[0] - elbow[0]))
         hand = _point(wrist, length("hand", 22), elbow_angle + wrist_delta)
         leg = _clamp(float(pose.get(f"{side}_leg", sign * 5)),
                      float(limits.get("hip", [-100, 100])[0]),
@@ -213,12 +224,23 @@ def build_skeleton(pose: dict[str, float], proportions: dict[str, float] | None 
         knee = _point(hip, length("thigh", 105), leg)
         ankle_angle = _clamp(float(pose.get(f"{side}_foot_angle", 0.0)), -65.0, 65.0)
         foot = _point(knee, length("shin", 100), knee_angle)
+        ankle_x = pose.get(f"{side}_ankle_target_x")
+        ankle_y = pose.get(f"{side}_ankle_target_y")
+        if ankle_x is not None and ankle_y is not None:
+            knee, foot = solve_two_bone(
+                hip, (float(ankle_x), float(ankle_y)),
+                length("thigh", 105), length("shin", 100),
+                bend=float(pose.get(f"{side}_ik_bend", sign)),
+            )
+            knee_angle = math.degrees(math.atan2(foot[1] - knee[1], foot[0] - knee[0]))
         toe = _point(foot, length("foot", 38), knee_angle + ankle_angle, upward=False)
         hand_spread = _clamp(float(pose.get(f"{side}_hand_spread", 0.5)), 0.0, 1.0)
         fingers = []
-        for finger_index in range(3):
-            fan = (finger_index - 1) * (8.0 + 10.0 * hand_spread)
+        # Five stylized digits: four-finger fan plus an opposing thumb.
+        for finger_index in range(4):
+            fan = (finger_index - 1.5) * (6.0 + 9.0 * hand_spread)
             fingers.append(_point(hand, length("finger", 17), elbow_angle + wrist_delta + fan))
+        fingers.append(_point(hand, length("finger", 15), elbow_angle + wrist_delta + 48.0 * sign))
         joints[f"{side}_wrist"] = wrist
         joints[f"{side}_toe"] = toe
         joints[f"{side}_fingers"] = tuple(fingers)
