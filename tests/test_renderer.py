@@ -2,7 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from studio.renderer import render_frame, shot_at
+from studio.renderer import render_episode_frames, render_frame, shot_at
+from studio.cli import init_project
 
 
 class RendererTests(unittest.TestCase):
@@ -31,6 +32,16 @@ class RendererTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertGreater(output.stat().st_size, 1000)
             self.assertEqual(output.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
+
+    def test_episode_render_loads_rig_and_motion_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            frame_dir, rendered = render_episode_frames(project, start_frame=0, max_frames=2)
+            self.assertEqual(rendered, 2)
+            self.assertTrue((frame_dir / "frame_000000.png").is_file())
+            self.assertTrue((frame_dir / "frame_000001.png").is_file())
 
 
 if __name__ == "__main__":
