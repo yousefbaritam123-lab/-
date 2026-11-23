@@ -1,0 +1,66 @@
+name: Render real 10-second studio test
+
+on:
+  push:
+    branches:
+      - studio-pro-foundation
+    paths:
+      - ".github/workflows/studio-real-10s-render.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-real-10s:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: studio-pro-foundation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install graphics libraries and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 fonts-noto-core ffmpeg
+      - name: Install renderer dependencies
+        run: python -m pip install --disable-pip-version-check skia-python imageio-ffmpeg Pillow
+      - name: Initialize real studio project
+        run: |
+          python -m studio.cli init projects/real-10s
+          cp examples/pilot-15s/episode.json projects/real-10s/episode.json
+          cp examples/pilot-15s/continuity.json projects/real-10s/continuity.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("projects/real-10s/episode.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          data["id"] = "youssef-real-engine-10s"
+          data["title"] = "اختبار المحرك الحقيقي - 10 ثوانٍ"
+          data["format"]["duration_seconds"] = 10
+          data["shots"] = data["shots"][:2]
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+      - name: Validate episode with studio
+        run: python -m studio.cli validate projects/real-10s
+      - name: Render 300 frames with the repository renderer
+        run: python -m studio.cli render projects/real-10s --resume
+      - name: Run studio quality control
+        run: python -m studio.cli qc projects/real-10s
+      - name: Certify and encode delivery
+        run: python -m studio.cli finalize projects/real-10s
+      - name: Verify actual MP4 properties
+        run: |
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json projects/real-10s/renders/episode.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: youssef-real-engine-10s
+          path: |
+            projects/real-10s/renders/episode.mp4
+            projects/real-10s/production/quality_report.json
+            projects/real-10s/production/delivery_manifest.json
+          if-no-files-found: error
+          retention-days: 14
