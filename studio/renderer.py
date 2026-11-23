@@ -159,7 +159,9 @@ def _draw_background(canvas: "skia.Canvas", width: int, height: int,
     shader = skia.GradientShader.MakeLinear(
         [(0, 0), (0, height)], [top, bottom], None, skia.TileMode.kClamp
     )
-    canvas.drawRect(skia.Rect.MakeWH(width, height), _paint(skia.ColorWHITE, 1, skia.Paint.kFill_Style).setShader(shader))
+    sky_paint = _paint(skia.ColorWHITE, 1, skia.Paint.kFill_Style)
+    sky_paint.setShader(shader)
+    canvas.drawRect(skia.Rect.MakeWH(width, height), sky_paint)
     # Distant hills and a few parallax clouds create depth without external assets.
     hill = _paint(_color((location or {}).get("hill", "#6DAD79")), 1, skia.Paint.kFill_Style)
     path = skia.Path()
