@@ -26,7 +26,7 @@ def convert_rhubarb_data(data: dict[str, Any], *, offset: float = 0.0) -> list[d
     return sorted(result, key=lambda item: item["at"])
 
 def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
-                     line_start: float = 0.0, executable: str = "rhubarb",
+                     executable: str = "rhubarb",
                      dialog_file: Path | None = None) -> list[dict[str, Any]]:
     binary = shutil.which(executable) if not Path(executable).is_file() else executable
     if not binary:
@@ -44,7 +44,7 @@ def generate_visemes(audio_path: Path, output_path: Path, *, speaker: str,
     if completed.returncode:
         raise RuntimeError(f"Rhubarb failed ({completed.returncode}): {completed.stderr.strip()}")
     cues = convert_rhubarb_data(json.loads(raw_path.read_text(encoding="utf-8")))
-    output_path.write_text(json.dumps({"speaker": speaker, "visemes": cues}, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    output_path.write_text(json.dumps({"speaker": speaker, "visemes": cues}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return cues
 
 def attach_visemes(episode: dict[str, Any], *, shot_id: str, speaker: str,
