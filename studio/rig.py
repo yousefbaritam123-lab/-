@@ -165,10 +165,22 @@ def foot_plant_targets(
     stance_phase = 0.0 if side == "left" else 0.5
     stance_pose = sample_motion(action, stance_phase * duration)
     anchor = build_skeleton(stance_pose, proportions)[f"{side}_foot"]
+    target_x = anchor[0] - root_dx_since_stance
+    target_y = anchor[1] - root_y
+    p = proportions or {}
+    max_reach = 105.0 * float(p.get("thigh", 1.0)) + 100.0 * float(p.get("shin", 1.0)) - 0.05
+    distance = math.hypot(target_x, target_y)
+    adjusted_root_y = root_y
+    if distance > max_reach and abs(target_x) < max_reach:
+        # Keep the foot planted by limiting body bob before the leg overextends.
+        reachable_y = math.sqrt(max_reach * max_reach - target_x * target_x)
+        target_y = math.copysign(reachable_y, target_y)
+        adjusted_root_y = anchor[1] - target_y
     return {
-        f"{side}_ankle_target_x": anchor[0] - root_dx_since_stance,
-        f"{side}_ankle_target_y": anchor[1] - root_y,
+        f"{side}_ankle_target_x": target_x,
+        f"{side}_ankle_target_y": target_y,
         f"{side}_ik_bend": -1.0 if side == "left" else 1.0,
+        "root_y": adjusted_root_y,
     }
 
 
