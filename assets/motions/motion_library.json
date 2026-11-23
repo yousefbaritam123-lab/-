@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "degrees_clockwise_from_positive_x",
+  "interpolation": "cubic_ease_in_out",
+  "clips": {
+    "idle": {
+      "duration": 2,
+      "loop": true,
+      "beats": [
+        "breathing",
+        "weight_shift",
+        "settle"
+      ]
+    },
+    "walk": {
+      "duration": 0.8,
+      "loop": true,
+      "beats": [
+        "left_contact",
+        "down",
+        "right_contact",
+        "down"
+      ],
+      "rules": [
+        "opposite arm-leg swing",
+        "plant feet",
+        "head lag"
+      ]
+    },
+    "run": {
+      "duration": 0.48,
+      "loop": true,
+      "beats": [
+        "contact",
+        "airborne",
+        "opposite_contact",
+        "airborne"
+      ],
+      "rules": [
+        "forward lean",
+        "compact stride",
+        "clear contact"
+      ]
+    },
+    "wave": {
+      "duration": 1.2,
+      "loop": false,
+      "beats": [
+        "raise",
+        "wave_left",
+        "wave_right",
+        "lower"
+      ]
+    },
+    "talk": {
+      "duration": 1,
+      "loop": true,
+      "beats": [
+        "mouth_open",
+        "close",
+        "head_nod",
+        "gesture"
+      ],
+      "rules": [
+        "sync mouth to dialogue cues",
+        "vary gesture emphasis"
+      ]
+    },
+    "jump": {
+      "duration": 0.9,
+      "loop": false,
+      "beats": [
+        "anticipation_crouch",
+        "takeoff",
+        "apex",
+        "landing_compression",
+        "settle"
+      ]
+    },
+    "dodge": {
+      "duration": 0.72,
+      "loop": false,
+      "beats": [
+        "anticipation",
+        "stylized_evasion",
+        "recovery"
+      ]
+    },
+    "impact_react": {
+      "duration": 0.62,
+      "loop": false,
+      "beats": [
+        "squash",
+        "recoil",
+        "recover"
+      ]
+    }
+  }
+}
