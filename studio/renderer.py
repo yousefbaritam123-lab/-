@@ -159,13 +159,38 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     right_elbow, right_hand = point("right_elbow"), point("right_hand")
 
     def limb(a: tuple[float, float], b: tuple[float, float], color: int, width: float) -> None:
-        _line(canvas, a, b, ink, width + outline_width * 0.55)
+        # A three-pass, rounded costume limb: contact shadow, ink silhouette,
+        # then a restrained fabric/skin highlight. This avoids the bare-wire look.
+        shadow_color = skia.ColorSetARGB(58, 10, 13, 20)
+        _line(canvas, (a[0] + 3, a[1] + 4), (b[0] + 3, b[1] + 4),
+              shadow_color, width + outline_width * 0.9)
+        _line(canvas, a, b, ink, width + outline_width * 0.72)
         _line(canvas, a, b, color, width)
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = max(math.hypot(dx, dy), 1.0)
+        nx, ny = -dy / length, dx / length
+        inset = max(2.0, width * 0.22)
+        _line(canvas, (a[0] + nx * inset, a[1] + ny * inset),
+              (b[0] + nx * inset, b[1] + ny * inset),
+              skia.ColorSetARGB(62, 255, 255, 255), max(1.5, width * 0.10))
 
-    limb(hip, left_knee, trousers, 17)
-    limb(left_knee, left_foot, trousers, 15)
-    limb(hip, right_knee, trousers, 17)
-    limb(right_knee, right_foot, trousers, 15)
+    def joint(center: tuple[float, float], color: int, radius: float) -> None:
+        cx, cy = center
+        canvas.drawCircle(cx + 2, cy + 3, radius + 1,
+                          _paint(skia.ColorSetARGB(55, 8, 12, 18), 1, skia.Paint.kFill_Style))
+        canvas.drawCircle(cx, cy, radius + 2,
+                          _paint(ink, 1, skia.Paint.kFill_Style))
+        canvas.drawCircle(cx, cy, radius,
+                          _paint(color, 1, skia.Paint.kFill_Style))
+        canvas.drawCircle(cx - radius * .25, cy - radius * .28, max(1.2, radius * .16),
+                          _paint(skia.ColorSetARGB(82, 255, 255, 255), 1, skia.Paint.kFill_Style))
+
+    limb(hip, left_knee, trousers, 21)
+    limb(left_knee, left_foot, trousers, 18)
+    limb(hip, right_knee, trousers, 21)
+    limb(right_knee, right_foot, trousers, 18)
+    joint(left_knee, trousers, 10)
+    joint(right_knee, trousers, 10)
     for side, (fx, fy) in (("left", left_foot), ("right", right_foot)):
         tx, ty = point(f"{side}_toe")
         shoe_path = skia.Path()
@@ -182,8 +207,9 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
         inner.close()
         canvas.drawPath(inner, _paint(shoes, 1, skia.Paint.kFill_Style))
 
-    limb(left_shoulder, left_elbow, shirt, 16)
-    limb(left_elbow, left_hand, skin, 12)
+    limb(left_shoulder, left_elbow, shirt, 20)
+    limb(left_elbow, left_hand, skin, 13)
+    joint(left_elbow, shirt, 9)
     chest = point("chest")
     neck = point("neck")
     torso = skia.Path()
@@ -192,8 +218,30 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     torso.lineTo(hip[0] + 30, hip[1] - 2)
     torso.quadTo(28, chest[1] - 12, right_shoulder[0] + 8, right_shoulder[1] - 3)
     torso.close()
+    canvas.drawPath(torso, _paint(skia.ColorSetARGB(38, 8, 12, 18), 1, skia.Paint.kFill_Style))
+    canvas.save()
+    canvas.translate(0, 4)
+    canvas.drawPath(torso, _paint(skia.ColorSetARGB(45, 8, 12, 18), 1, skia.Paint.kFill_Style))
+    canvas.restore()
     canvas.drawPath(torso, _paint(shirt, 1, skia.Paint.kFill_Style))
     canvas.drawPath(torso, _paint(ink, outline_width, skia.Paint.kStroke_Style))
+    # Tailored costume details: collar, center seam, buttons and chest pocket.
+    collar = skia.Path()
+    collar.moveTo(neck[0] - 23, neck[1] + 7)
+    collar.lineTo(neck[0], neck[1] + 31)
+    collar.lineTo(neck[0] + 23, neck[1] + 7)
+    collar.lineTo(neck[0] + 10, neck[1] + 2)
+    collar.lineTo(neck[0], neck[1] + 13)
+    collar.lineTo(neck[0] - 10, neck[1] + 2)
+    collar.close()
+    canvas.drawPath(collar, _paint(ink, 2, skia.Paint.kStroke_Style))
+    canvas.drawPath(collar, _paint(_color(appearance.get("collar", appearance.get("accent", "#C62828"))), 1, skia.Paint.kFill_Style))
+    _line(canvas, (0, chest[1] + 18), (0, hip[1] - 15), skia.ColorSetARGB(75, 20, 24, 32), 2)
+    for button_y in (chest[1] + 34, chest[1] + 57, chest[1] + 80):
+        canvas.drawCircle(0, button_y, 2.7, _paint(ink, 1, skia.Paint.kFill_Style))
+    pocket = skia.Rect.MakeLTRB(20, chest[1] + 37, 47, chest[1] + 69)
+    canvas.drawRoundRect(pocket, 3, 3, _paint(ink, 2, skia.Paint.kStroke_Style))
+    canvas.drawLine(24, chest[1] + 42, 43, chest[1] + 42, _paint(skia.ColorSetARGB(100,255,255,255), 1))
     _line(canvas, neck, (neck[0], neck[1] + 30), skin, 20)
 
     if appearance.get("scarf", actor.get("scarf", False)):
@@ -208,8 +256,9 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
         canvas.drawPath(scarf, _paint(ink, 3, skia.Paint.kStroke_Style))
         canvas.drawPath(scarf, _paint(accent, 1, skia.Paint.kFill_Style))
 
-    limb(right_shoulder, right_elbow, shirt, 16)
-    limb(right_elbow, right_hand, skin, 12)
+    limb(right_shoulder, right_elbow, shirt, 20)
+    limb(right_elbow, right_hand, skin, 13)
+    joint(right_elbow, shirt, 9)
     for side, (hx, hy) in (("left", left_hand), ("right", right_hand)):
         wx, wy = point(f"{side}_wrist")
         # Palm is a small oriented capsule; each digit receives an outline,
@@ -271,9 +320,14 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
             _line(canvas, (eye_x - 7, eye_y), (eye_x + 7, eye_y), ink, 4)
         else:
             eye_h = max(1.5, 5.0 * (1.0 - face["blink"]))
-            canvas.drawOval(skia.Rect.MakeLTRB(eye_x - 5 + gaze_x, eye_y - eye_h + gaze_y,
-                                               eye_x + 5 + gaze_x, eye_y + eye_h + gaze_y),
+            canvas.drawOval(skia.Rect.MakeLTRB(eye_x - 7 + gaze_x, eye_y - eye_h - 2 + gaze_y,
+                                               eye_x + 7 + gaze_x, eye_y + eye_h + 2 + gaze_y),
+                            _paint(skia.ColorWHITE, 1, skia.Paint.kFill_Style))
+            canvas.drawOval(skia.Rect.MakeLTRB(eye_x - 4 + gaze_x, eye_y - eye_h + gaze_y,
+                                               eye_x + 4 + gaze_x, eye_y + eye_h + gaze_y),
                             _paint(ink, 1, skia.Paint.kFill_Style))
+            canvas.drawCircle(eye_x - 1 + gaze_x, eye_y - 1 + gaze_y, 1.5,
+                              _paint(skia.ColorWHITE, 1, skia.Paint.kFill_Style))
     shape = int(round(face.get("mouth_shape", 0.0)))
     if shape in (1, 2, 3, 4, 5) or face["mouth"] > .35:
         widths = {1: 13, 2: 15, 3: 7, 4: 16, 5: 12}
