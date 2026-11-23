@@ -1,0 +1,170 @@
+{
+  "id": "youssef-pilot-15s",
+  "title": "اللقاء قدّام الحانوت",
+  "language": "ar-DZ",
+  "format": {
+    "width": 540,
+    "height": 960,
+    "fps": 30,
+    "duration_seconds": 15
+  },
+  "characters": [
+    {
+      "id": "youssef",
+      "name": "يوسف",
+      "rig": "assets/characters/youssef/character.toon.json",
+      "scarf": true,
+      "accent": "#C62828",
+      "x": 170,
+      "y": 730,
+      "scale": 0.9
+    },
+    {
+      "id": "adam",
+      "name": "آدم",
+      "rig": "assets/characters/adam/character.toon.json",
+      "accent": "#2878C8",
+      "x": 390,
+      "y": 730,
+      "scale": 0.9
+    }
+  ],
+  "locations": [
+    {
+      "id": "street_01",
+      "name": "شارع حي جزائري",
+      "sky_top": "#75BCEB",
+      "sky_bottom": "#F5D6AE",
+      "hill": "#73956D",
+      "ground": "#52785A"
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-001",
+      "duration_seconds": 5,
+      "location": "street_01",
+      "actors": [
+        "youssef"
+      ],
+      "action": "walk",
+      "movement": {
+        "youssef": {
+          "from_x": 110,
+          "to_x": 230
+        }
+      },
+      "camera": {
+        "move": {
+          "from": {
+            "x": 0,
+            "y": 0,
+            "zoom": 1
+          },
+          "to": {
+            "x": -22,
+            "y": 0,
+            "zoom": 1.035
+          }
+        }
+      },
+      "dialogue": [
+        {
+          "speaker": "youssef",
+          "text": "وين راه آدم؟ قالّي يستناني قدّام الحانوت.",
+          "start_seconds": 1.1,
+          "end_seconds": 4.8
+        }
+      ]
+    },
+    {
+      "id": "shot-002",
+      "duration_seconds": 5,
+      "location": "street_01",
+      "actors": [
+        "youssef",
+        "adam"
+      ],
+      "action": "wave",
+      "positions": {
+        "youssef": {
+          "x": 180,
+          "y": 730,
+          "scale": 0.86
+        },
+        "adam": {
+          "x": 390,
+          "y": 730,
+          "scale": 0.9
+        }
+      },
+      "camera": {
+        "zoom": 1.04
+      },
+      "dialogue": [
+        {
+          "speaker": "adam",
+          "text": "يا يوسف! راني هنا، واش راك؟",
+          "start_seconds": 0.5,
+          "end_seconds": 2.7
+        },
+        {
+          "speaker": "youssef",
+          "text": "لاباس! جيت في الوقت.",
+          "start_seconds": 2.8,
+          "end_seconds": 4.8
+        }
+      ]
+    },
+    {
+      "id": "shot-003",
+      "duration_seconds": 5,
+      "location": "street_01",
+      "actors": [
+        "youssef",
+        "adam"
+      ],
+      "action": "talk",
+      "positions": {
+        "youssef": {
+          "x": 190,
+          "y": 730,
+          "scale": 0.86
+        },
+        "adam": {
+          "x": 380,
+          "y": 730,
+          "scale": 0.9
+        }
+      },
+      "camera": {
+        "move": {
+          "from": {
+            "x": 0,
+            "y": 0,
+            "zoom": 1
+          },
+          "to": {
+            "x": -12,
+            "y": -8,
+            "zoom": 1.08
+          }
+        }
+      },
+      "dialogue": [
+        {
+          "speaker": "youssef",
+          "text": "يلا نروحو، عندي فكرة جديدة للمشروع!",
+          "start_seconds": 0.4,
+          "end_seconds": 2.8
+        },
+        {
+          "speaker": "adam",
+          "text": "غير ما تقوليش راك حاب تديرها وحدك!",
+          "start_seconds": 2.9,
+          "end_seconds": 4.9
+        }
+      ]
+    }
+  ]
+}
