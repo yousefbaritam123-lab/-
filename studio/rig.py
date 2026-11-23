@@ -50,6 +50,34 @@ DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
         {"at": .75, "pose": {"mouth": 1, "head": -2, "right_arm": 48, "right_elbow": -28}},
         {"at": 1, "pose": {"mouth": 0, "head": 0, "right_arm": 24, "right_elbow": -10}},
     ]},
+    "point": {"duration": 0.9, "loop": False, "keyframes": [
+        {"at": 0, "pose": {"right_arm": 22, "right_elbow": -8}},
+        {"at": 0.35, "pose": {"right_arm": 82, "right_elbow": -12, "right_wrist": 8, "right_hand_spread": 1}},
+        {"at": 0.7, "pose": {"right_arm": 82, "right_elbow": -12, "right_wrist": 8, "right_hand_spread": 1, "head": 4, "brow": 0.5}},
+        {"at": 1, "pose": {"right_arm": 22, "right_elbow": -8}},
+    ]},
+    "think": {"duration": 2.0, "loop": True, "keyframes": [
+        {"at": 0, "pose": {"right_arm": 35, "right_elbow": -65, "right_wrist": 18, "head": -5, "gaze_x": -0.3, "brow": 0.4, "mouth": 0}},
+        {"at": 0.5, "pose": {"right_arm": 40, "right_elbow": -72, "right_wrist": 12, "head": -2, "gaze_x": 0.2, "brow": 0.7, "mouth": 0}},
+        {"at": 1, "pose": {"right_arm": 35, "right_elbow": -65, "right_wrist": 18, "head": -5, "gaze_x": -0.3, "brow": 0.4, "mouth": 0}},
+    ]},
+    "celebrate": {"duration": 1.1, "loop": False, "keyframes": [
+        {"at": 0, "pose": {"root_y": 0, "left_arm": -22, "right_arm": 22, "emotion": 0.2}},
+        {"at": 0.25, "pose": {"root_y": -35, "left_arm": -145, "right_arm": 145, "left_elbow": 18, "right_elbow": -18, "emotion": 0.9, "mouth": 1}},
+        {"at": 0.65, "pose": {"root_y": -22, "left_arm": -138, "right_arm": 138, "emotion": 1, "mouth": 1}},
+        {"at": 1, "pose": {"root_y": 0, "left_arm": -22, "right_arm": 22, "emotion": 0.2, "mouth": 0}},
+    ]},
+    "sad": {"duration": 1.6, "loop": True, "keyframes": [
+        {"at": 0, "pose": {"head": -12, "left_arm": -8, "right_arm": 8, "brow": -0.8, "emotion": -0.8, "mouth": 0}},
+        {"at": 0.5, "pose": {"head": -10, "left_arm": -5, "right_arm": 5, "brow": -0.6, "emotion": -0.7, "mouth": 0}},
+        {"at": 1, "pose": {"head": -12, "left_arm": -8, "right_arm": 8, "brow": -0.8, "emotion": -0.8, "mouth": 0}},
+    ]},
+    "surprised": {"duration": 0.8, "loop": False, "keyframes": [
+        {"at": 0, "pose": {"head": 0, "brow": 0, "mouth": 0}},
+        {"at": 0.25, "pose": {"head": -8, "brow": 1.5, "mouth": 1, "emotion": 0.2, "left_arm": -65, "right_arm": 65}},
+        {"at": 0.7, "pose": {"head": -5, "brow": 1.2, "mouth": 1, "left_arm": -55, "right_arm": 55}},
+        {"at": 1, "pose": {"head": 0, "brow": 0, "mouth": 0}},
+    ]},
     "jump": {"duration": .9, "loop": False, "keyframes": [
         {"at": 0, "pose": {"root_y": 0, "left_leg": -5, "right_leg": 5}},
         {"at": .2, "pose": {"root_y": 22, "torso": 4, "left_leg": -24, "right_leg": 24, "left_knee": 35, "right_knee": -35}},
