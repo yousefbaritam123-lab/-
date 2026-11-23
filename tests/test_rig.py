@@ -28,6 +28,11 @@ class CharacterRigTests(unittest.TestCase):
         self.assertAlmostEqual((elbow[0] ** 2 + elbow[1] ** 2) ** 0.5, 60, places=5)
         self.assertAlmostEqual(((end[0] - elbow[0]) ** 2 + (end[1] - elbow[1]) ** 2) ** 0.5, 60, places=5)
 
+    def test_two_bone_solver_clamps_unreachable_target(self):
+        elbow, end = solve_two_bone((0, 0), (500, 0), 60, 60)
+        self.assertAlmostEqual((end[0] ** 2 + end[1] ** 2) ** 0.5, 120, places=3)
+        self.assertAlmostEqual(((end[0] - elbow[0]) ** 2 + (end[1] - elbow[1]) ** 2) ** 0.5, 60, places=3)
+
     def test_rig_exposes_wrist_fingers_and_toes(self):
         joints = build_skeleton(sample_motion("wave", .4))
         for key in ("left_wrist", "right_wrist", "left_fingers", "right_fingers",
