@@ -1,0 +1,139 @@
+name: Studio art-direction benchmark
+
+on:
+  push:
+    branches:
+      - studio-pro-foundation
+    paths:
+      - ".github/workflows/studio-art-direction-benchmark.yml"
+      - "studio/**"
+      - "tests/**"
+      - "assets/characters/cast_60/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: studio-pro-foundation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install graphics libraries and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 fonts-noto-core ffmpeg
+      - name: Install renderer dependencies
+        run: python -m pip install --disable-pip-version-check skia-python imageio-ffmpeg Pillow
+      - name: Run full Python test suite
+        run: python -m unittest discover -s tests -v
+      - name: Build a new three-character art-direction scene
+        run: |
+          python -m studio.cli init projects/art-direction-benchmark
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("projects/art-direction-benchmark")
+          episode = {
+            "id": "studio-art-direction-benchmark",
+            "title": "اختبار إخراج وشخصيات جديد",
+            "language": "ar-DZ",
+            "format": {"width": 540, "height": 960, "fps": 30, "duration_seconds": 10},
+            "characters": [
+              {"id":"extra_006","name":"سامي","x":135,"y":735,"scale":0.72},
+              {"id":"extra_014","name":"مراد","x":275,"y":735,"scale":0.72},
+              {"id":"extra_021","name":"نادر","x":415,"y":735,"scale":0.72}
+            ],
+            "locations": [
+              {"id":"roof","name":"سطح عمارة جزائرية","environment":"rooftop","sky_top":"#334B73","sky_bottom":"#E9A56E","ground":"#8C7865","hill":"#596B66","weather":"clear"},
+              {"id":"class","name":"قاعة دراسة","environment":"classroom","sky_top":"#C6D8E5","sky_bottom":"#E9DFCC","ground":"#8C765F","wall":"#E9E0D0"}
+            ],
+            "shots": [
+              {
+                "id":"roof-wide","duration_seconds":5,"location":"roof",
+                "actors":["extra_006","extra_014","extra_021"],"action":"talk",
+                "positions":{
+                  "extra_006":{"x":125,"y":735,"scale":0.70},
+                  "extra_014":{"x":270,"y":735,"scale":0.76},
+                  "extra_021":{"x":415,"y":735,"scale":0.70}
+                },
+                "camera":{"move":{"from":{"x":0,"y":0,"zoom":1.0},"to":{"x":-8,"y":-10,"zoom":1.08}}},
+                "motion_tracks":{
+                  "extra_006":[{"start":0,"end":1.2,"action":"wait"},{"start":1.2,"end":5,"action":"explain","transition_seconds":0.25}],
+                  "extra_014":[{"start":0,"end":1.0,"action":"think"},{"start":1.0,"end":2.0,"action":"point","transition_seconds":0.2},{"start":2.0,"end":5,"action":"talk","transition_seconds":0.2}],
+                  "extra_021":[{"start":0,"end":2.2,"action":"listen"},{"start":2.2,"end":3.4,"action":"surprised","transition_seconds":0.15},{"start":3.4,"end":5,"action":"agree","transition_seconds":0.2}]
+                },
+                "dialogue":[
+                  {"speaker":"extra_006","text":"لازم نلقاو حل قبل ما يهبط الليل.","start_seconds":0.5,"end_seconds":2.6},
+                  {"speaker":"extra_014","text":"عندي فكرة، شوفو هنا.","start_seconds":2.7,"end_seconds":4.8}
+                ],
+                "effects":[{"type":"vignette","intensity":0.18}]
+              },
+              {
+                "id":"class-medium","duration_seconds":5,"location":"class",
+                "actors":["extra_006","extra_014","extra_021"],"action":"talk",
+                "positions":{
+                  "extra_006":{"x":145,"y":735,"scale":0.68},
+                  "extra_014":{"x":275,"y":735,"scale":0.74},
+                  "extra_021":{"x":405,"y":735,"scale":0.68}
+                },
+                "camera":{"move":{"from":{"x":0,"y":0,"zoom":1.02},"to":{"x":0,"y":-8,"zoom":1.10}}},
+                "motion_tracks":{
+                  "extra_006":[{"start":0,"end":2.5,"action":"explain"},{"start":2.5,"end":5,"action":"celebrate_small","transition_seconds":0.2}],
+                  "extra_014":[{"start":0,"end":5,"action":"listen"}],
+                  "extra_021":[{"start":0,"end":1.8,"action":"think"},{"start":1.8,"end":5,"action":"agree","transition_seconds":0.2}]
+                },
+                "dialogue":[
+                  {"speaker":"extra_021","text":"هكذا نقدروا نكملوا الخدمة.","start_seconds":0.4,"end_seconds":2.5},
+                  {"speaker":"extra_006","text":"مليح، نبدأو من الآن.","start_seconds":2.6,"end_seconds":4.8}
+                ]
+              }
+            ]
+          }
+          (root/"episode.json").write_text(json.dumps(episode,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+          PY
+      - name: Validate and render all 300 frames
+        run: |
+          python -m studio.cli validate projects/art-direction-benchmark
+          python -m studio.cli render projects/art-direction-benchmark --resume
+      - name: Run engineering quality control and encode
+        run: |
+          python -m studio.cli qc projects/art-direction-benchmark
+          python -m studio.cli finalize projects/art-direction-benchmark
+      - name: Create visual contact sheet for human review
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps, ImageDraw
+          frames = Path("projects/art-direction-benchmark/renders/frames")
+          picks = [0,30,60,90,120,150,210,270]
+          thumbs=[]
+          for n in picks:
+              im=Image.open(frames/f"frame_{n:06d}.png").convert("RGB")
+              im.thumbnail((270,480))
+              tile=Image.new("RGB",(290,520),(24,28,36))
+              tile.paste(im,((290-im.width)//2,8))
+              ImageDraw.Draw(tile).text((12,492),f"Frame {n}",fill="white")
+              thumbs.append(tile)
+          sheet=Image.new("RGB",(290*4,520*2),(18,22,30))
+          for i,im in enumerate(thumbs): sheet.paste(im,((i%4)*290,(i//4)*520))
+          sheet.save("projects/art-direction-benchmark/production/contact-sheet.jpg",quality=92)
+          PY
+      - name: Verify encoded video
+        run: ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json projects/art-direction-benchmark/renders/episode.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studio-art-direction-benchmark
+          path: |
+            projects/art-direction-benchmark/renders/episode.mp4
+            projects/art-direction-benchmark/production/quality_report.json
+            projects/art-direction-benchmark/production/delivery_manifest.json
+            projects/art-direction-benchmark/production/contact-sheet.jpg
+          if-no-files-found: error
+          retention-days: 14
