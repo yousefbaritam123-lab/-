@@ -3,7 +3,7 @@
   "pack_id": "youssef-background-cast-60",
   "title": "60 Procedural Stickman Character Profiles",
   "description": "Sixty configurable background-character profiles sharing the same runtime skeleton and motion library. These are procedural variants, not sixty separately hand-drawn rigs.",
-  "shared_rig": "humanoid_rig_v1",
+  "shared_rig": "assets/characters/youssef/character.toon.json",
   "motion_library": "assets/motions/motion_library.json",
   "default_actions": [
     "idle",
@@ -23,7 +23,7 @@
       "id": "extra_001",
       "display_name": "شخصية إضافية 01",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -54,7 +54,7 @@
       "id": "extra_002",
       "display_name": "شخصية إضافية 02",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -85,7 +85,7 @@
       "id": "extra_003",
       "display_name": "شخصية إضافية 03",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -116,7 +116,7 @@
       "id": "extra_004",
       "display_name": "شخصية إضافية 04",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -147,7 +147,7 @@
       "id": "extra_005",
       "display_name": "شخصية إضافية 05",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -178,7 +178,7 @@
       "id": "extra_006",
       "display_name": "شخصية إضافية 06",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -209,7 +209,7 @@
       "id": "extra_007",
       "display_name": "شخصية إضافية 07",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -240,7 +240,7 @@
       "id": "extra_008",
       "display_name": "شخصية إضافية 08",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -271,7 +271,7 @@
       "id": "extra_009",
       "display_name": "شخصية إضافية 09",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -302,7 +302,7 @@
       "id": "extra_010",
       "display_name": "شخصية إضافية 10",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -333,7 +333,7 @@
       "id": "extra_011",
       "display_name": "شخصية إضافية 11",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -364,7 +364,7 @@
       "id": "extra_012",
       "display_name": "شخصية إضافية 12",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -395,7 +395,7 @@
       "id": "extra_013",
       "display_name": "شخصية إضافية 13",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -426,7 +426,7 @@
       "id": "extra_014",
       "display_name": "شخصية إضافية 14",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -457,7 +457,7 @@
       "id": "extra_015",
       "display_name": "شخصية إضافية 15",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -488,7 +488,7 @@
       "id": "extra_016",
       "display_name": "شخصية إضافية 16",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -519,7 +519,7 @@
       "id": "extra_017",
       "display_name": "شخصية إضافية 17",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -550,7 +550,7 @@
       "id": "extra_018",
       "display_name": "شخصية إضافية 18",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -581,7 +581,7 @@
       "id": "extra_019",
       "display_name": "شخصية إضافية 19",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -612,7 +612,7 @@
       "id": "extra_020",
       "display_name": "شخصية إضافية 20",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -643,7 +643,7 @@
       "id": "extra_021",
       "display_name": "شخصية إضافية 21",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -674,7 +674,7 @@
       "id": "extra_022",
       "display_name": "شخصية إضافية 22",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -705,7 +705,7 @@
       "id": "extra_023",
       "display_name": "شخصية إضافية 23",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -736,7 +736,7 @@
       "id": "extra_024",
       "display_name": "شخصية إضافية 24",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -767,7 +767,7 @@
       "id": "extra_025",
       "display_name": "شخصية إضافية 25",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -798,7 +798,7 @@
       "id": "extra_026",
       "display_name": "شخصية إضافية 26",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -829,7 +829,7 @@
       "id": "extra_027",
       "display_name": "شخصية إضافية 27",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -860,7 +860,7 @@
       "id": "extra_028",
       "display_name": "شخصية إضافية 28",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -891,7 +891,7 @@
       "id": "extra_029",
       "display_name": "شخصية إضافية 29",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -922,7 +922,7 @@
       "id": "extra_030",
       "display_name": "شخصية إضافية 30",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -953,7 +953,7 @@
       "id": "extra_031",
       "display_name": "شخصية إضافية 31",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -984,7 +984,7 @@
       "id": "extra_032",
       "display_name": "شخصية إضافية 32",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1015,7 +1015,7 @@
       "id": "extra_033",
       "display_name": "شخصية إضافية 33",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1046,7 +1046,7 @@
       "id": "extra_034",
       "display_name": "شخصية إضافية 34",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1077,7 +1077,7 @@
       "id": "extra_035",
       "display_name": "شخصية إضافية 35",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -1108,7 +1108,7 @@
       "id": "extra_036",
       "display_name": "شخصية إضافية 36",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1139,7 +1139,7 @@
       "id": "extra_037",
       "display_name": "شخصية إضافية 37",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1170,7 +1170,7 @@
       "id": "extra_038",
       "display_name": "شخصية إضافية 38",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1201,7 +1201,7 @@
       "id": "extra_039",
       "display_name": "شخصية إضافية 39",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1232,7 +1232,7 @@
       "id": "extra_040",
       "display_name": "شخصية إضافية 40",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -1263,7 +1263,7 @@
       "id": "extra_041",
       "display_name": "شخصية إضافية 41",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1294,7 +1294,7 @@
       "id": "extra_042",
       "display_name": "شخصية إضافية 42",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1325,7 +1325,7 @@
       "id": "extra_043",
       "display_name": "شخصية إضافية 43",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1356,7 +1356,7 @@
       "id": "extra_044",
       "display_name": "شخصية إضافية 44",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1387,7 +1387,7 @@
       "id": "extra_045",
       "display_name": "شخصية إضافية 45",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -1418,7 +1418,7 @@
       "id": "extra_046",
       "display_name": "شخصية إضافية 46",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1449,7 +1449,7 @@
       "id": "extra_047",
       "display_name": "شخصية إضافية 47",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1480,7 +1480,7 @@
       "id": "extra_048",
       "display_name": "شخصية إضافية 48",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1511,7 +1511,7 @@
       "id": "extra_049",
       "display_name": "شخصية إضافية 49",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1542,7 +1542,7 @@
       "id": "extra_050",
       "display_name": "شخصية إضافية 50",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -1573,7 +1573,7 @@
       "id": "extra_051",
       "display_name": "شخصية إضافية 51",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1604,7 +1604,7 @@
       "id": "extra_052",
       "display_name": "شخصية إضافية 52",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1635,7 +1635,7 @@
       "id": "extra_053",
       "display_name": "شخصية إضافية 53",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1666,7 +1666,7 @@
       "id": "extra_054",
       "display_name": "شخصية إضافية 54",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1697,7 +1697,7 @@
       "id": "extra_055",
       "display_name": "شخصية إضافية 55",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
@@ -1728,7 +1728,7 @@
       "id": "extra_056",
       "display_name": "شخصية إضافية 56",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1759,7 +1759,7 @@
       "id": "extra_057",
       "display_name": "شخصية إضافية 57",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1790,7 +1790,7 @@
       "id": "extra_058",
       "display_name": "شخصية إضافية 58",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1821,7 +1821,7 @@
       "id": "extra_059",
       "display_name": "شخصية إضافية 59",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#F3D2B2",
@@ -1852,7 +1852,7 @@
       "id": "extra_060",
       "display_name": "شخصية إضافية 60",
       "role": "background_extra",
-      "rig": "../../humanoid_rig_v1",
+      "rig": "assets/characters/youssef/character.toon.json",
       "style": "2d-ink-cartoon",
       "appearance": {
         "skin": "#E7B98F",
