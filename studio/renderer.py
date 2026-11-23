@@ -21,6 +21,7 @@ except ImportError as exc:  # pragma: no cover - depends on local optional runti
 from .rig import blend_motion, build_skeleton, facial_pose, foot_plant_targets, sample_motion
 from .cinematic import draw_cinematic_effects
 from .motion_library import active_track_segment, resolve_motion
+from .characters import load_character_catalog
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -550,24 +551,33 @@ def render_episode_frames(project_dir: Path, start_frame: int = 0,
                           max_frames: int | None = None,
                           resume: bool = False) -> tuple[Path, int]:
     episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
-    # Resolve optional cast catalog IDs into per-instance visual/proportion overrides.
+    # Resolve the complete 60-character catalog once per render. A character can
+    # select a profile explicitly with cast_id, or use a catalog ID as its own ID.
     catalog_path = project_dir / "assets" / "characters" / "cast_60" / "catalog.json"
-    cast_catalog = None
-    if catalog_path.is_file():
-        cast_catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    cast_catalog = load_character_catalog(catalog_path) if catalog_path.is_file() else None
     cast_by_id = {
         item.get("id"): item for item in (cast_catalog or {}).get("characters", [])
     }
-    # Resolve canonical character rigs once per render; shot overrides remain local.
+    # Resolve canonical character rigs once per render; actor overrides win over profile defaults.
     for character in episode.get("characters", []):
         cast_id = character.get("cast_id")
+        if not cast_id and character.get("id") in cast_by_id:
+            cast_id = character["id"]
+            character["cast_id"] = cast_id
         if cast_id:
             profile = cast_by_id.get(cast_id)
             if profile is None:
                 raise ValueError(f"Unknown cast_id '{cast_id}' for character {character.get('id')}")
-            character.setdefault("appearance", dict(profile.get("appearance", {})))
-            character.setdefault("proportions", dict(profile.get("proportions", {})))
-            character.setdefault("rig", profile.get("rig", (cast_catalog or {}).get("shared_rig")))
+            character["appearance"] = {
+                **dict(profile.get("appearance", {})),
+                **dict(character.get("appearance", {})),
+            }
+            character["proportions"] = {
+                **dict(profile.get("proportions", {})),
+                **dict(character.get("proportions", {})),
+            }
+            character.setdefault("rig", profile.get("rig", cast_catalog.get("shared_rig")))
+            character.setdefault("name", profile.get("display_name", cast_id))
         rig_rel = character.get("rig")
         if rig_rel:
             rig_path = (project_dir / rig_rel).resolve()
