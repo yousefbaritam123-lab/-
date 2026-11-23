@@ -7,7 +7,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from .models import validate_episode
+from .models import validate_episode, read_json
+from .continuity import validate_continuity
 from .pipeline import build_production_plan
 
 TEMPLATE = {
@@ -79,6 +80,11 @@ def _module_available(name: str) -> bool:
 
 def _validate(project: Path) -> bool:
     errors = validate_episode(project)
+    try:
+        episode = read_json(project / "episode.json")
+        errors.extend(validate_continuity(project, episode))
+    except ValueError as exc:
+        errors.append(str(exc))
     if errors:
         print("EPISODE VALIDATION FAILED")
         for error in errors:
