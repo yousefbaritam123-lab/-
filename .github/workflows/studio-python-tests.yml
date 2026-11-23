@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install system graphics libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1
       - name: Install renderer dependency
         run: python -m pip install --disable-pip-version-check skia-python
       - name: Run production manager and renderer tests
