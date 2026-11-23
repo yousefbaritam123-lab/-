@@ -114,7 +114,8 @@ def main(argv: list[str] | None = None) -> int:
             cmd.add_argument("--resume", action="store_true", help="skip already rendered non-empty frames")
     sub.add_parser("doctor", help="check local production tools")
     for name in ("qc", "finalize"):
-        sub.add_parser(name, help="audit episode or certify final delivery")
+        cmd = sub.add_parser(name, help="audit episode or certify final delivery")
+        cmd.add_argument("project", type=Path, help="episode project directory")
     story_cmd = sub.add_parser("story-next", help="create the next serialized episode outline")
     story_cmd.add_argument("project", type=Path)
     story_cmd.add_argument("--title")
