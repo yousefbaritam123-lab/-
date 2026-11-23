@@ -77,5 +77,27 @@ class RendererTests(unittest.TestCase):
             self.assertGreater(frame_dir.joinpath("frame_000001.png").stat().st_size, 1000)
 
 
+    def test_catalog_profile_id_is_resolved_without_explicit_cast_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            episode_path = project / "episode.json"
+            episode = json.loads(episode_path.read_text(encoding="utf-8"))
+            episode["format"]["duration_seconds"] = 1
+            episode["shots"] = [{
+                "id": "direct-catalog-shot", "duration_seconds": 1,
+                "location": "street_01", "actors": ["extra_001"],
+                "action": "wave", "dialogue": []
+            }]
+            episode["characters"] = [{
+                "id": "extra_001", "name": "Extra 001",
+                "x": 300, "y": 730, "scale": 0.8
+            }]
+            episode_path.write_text(json.dumps(episode, ensure_ascii=False), encoding="utf-8")
+            frame_dir, rendered = render_episode_frames(project, start_frame=0, max_frames=1)
+            self.assertEqual(rendered, 1)
+            self.assertGreater((frame_dir / "frame_000000.png").stat().st_size, 1000)
+
+
 if __name__ == "__main__":
     unittest.main()
