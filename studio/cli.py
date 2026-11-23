@@ -12,6 +12,7 @@ from .continuity import validate_continuity
 from .pipeline import build_production_plan
 from .story import build_next_episode_outline
 from .director import build_storyboard
+from .assembly import assemble_storyboard
 
 TEMPLATE = {
     "id": "episode-001",
@@ -116,6 +117,9 @@ def main(argv: list[str] | None = None) -> int:
     storyboard_cmd = sub.add_parser("storyboard", help="turn the latest story outline into an editable 100-second shot plan")
     storyboard_cmd.add_argument("project", type=Path)
     storyboard_cmd.add_argument("--outline", type=Path)
+    assemble_cmd = sub.add_parser("assemble", help="assemble storyboard and assets into an isolated renderable animatic project")
+    assemble_cmd.add_argument("project", type=Path)
+    assemble_cmd.add_argument("--storyboard", type=Path)
     image_cmd = sub.add_parser("prepare-character", help="remove image background and prepare a character manifest")
     image_cmd.add_argument("source", type=Path)
     image_cmd.add_argument("output", type=Path)
@@ -176,6 +180,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "storyboard":
         output = build_storyboard(args.project, args.outline)
         print(f"Editable storyboard created: {output}")
+        return 0
+    if args.command == "assemble":
+        output = assemble_storyboard(args.project, args.storyboard)
+        print(f"Isolated animatic project created: {output}")
+        print("Next: run validate, render, then encode using this new project directory.")
         return 0
     if args.command == "prepare-character":
         from .image_character import prepare_character_image
