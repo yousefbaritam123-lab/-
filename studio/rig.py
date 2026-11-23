@@ -16,7 +16,7 @@ POSE_KEYS = (
     "gaze_x", "gaze_y", "blink", "mouth", "brow", "emotion",
     "left_hand_target_x", "left_hand_target_y", "right_hand_target_x", "right_hand_target_y",
     "left_ankle_target_x", "left_ankle_target_y", "right_ankle_target_x", "right_ankle_target_y",
-    "left_ik_bend", "right_ik_bend",
+    "left_ik_bend", "right_ik_bend", "mouth_shape",
 )
 
 DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
@@ -297,5 +297,6 @@ def facial_pose(pose: dict[str, float], time_s: float) -> dict[str, float]:
         "gaze_y": _clamp(float(pose.get("gaze_y", 0.0)), -1.0, 1.0),
         "brow": _clamp(float(pose.get("brow", 0.0)) + emotion * 0.35, -2.0, 2.0),
         "mouth": _clamp(float(pose.get("mouth", 0.0)), 0.0, 1.0),
+        "mouth_shape": _clamp(float(pose.get("mouth_shape", 0.0)), 0.0, 8.0),
         "emotion": emotion,
     }
