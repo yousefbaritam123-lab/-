@@ -30,8 +30,16 @@ def encode_video(project_dir: Path, fps: int = 30, output_name: str = "episode.m
         ffmpeg, "-y", "-framerate", str(fps),
         "-start_number", "0", "-i", str(frames / "frame_%06d.png"),
         "-frames:v", str(expected), "-c:v", "libx264", "-preset", "medium",
-        "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)
+        "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
     ]
+    # Optional editorial mix: place the approved dialogue/music/FX mix at
+    # audio/final_mix.wav. Silence is padded to preserve the full episode length.
+    audio_mix = project_dir / "audio" / "final_mix.wav"
+    if audio_mix.is_file():
+        command.extend(["-i", str(audio_mix), "-map", "0:v:0", "-map", "1:a:0",
+                        "-c:a", "aac", "-b:a", "192k", "-af", "apad", "-t",
+                        f"{expected / fps:.3f}"])
+    command.append(str(output))
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode:
         raise RuntimeError("FFmpeg encoding failed:\n" + result.stderr[-5000:])
