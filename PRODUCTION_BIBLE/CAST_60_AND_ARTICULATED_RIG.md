@@ -22,11 +22,13 @@ When a complete target pair is supplied, the rig solves the elbow or knee with t
 
 `idle`, `walk`, `run`, `wave`, `talk`, `jump`, `point`, `think`, `celebrate`, `sad`, `surprised`, `dodge`, `impact_react`.
 
-Face controls include blink, gaze X/Y, brow, mouth-open amount and emotion. The renderer currently draws stylized eyes and mouth states; it is not yet phoneme-accurate lip-sync.
+Face controls include blink, gaze X/Y, brow, emotion, and numeric mouth shapes. Dialogue lines may optionally contain timed `visemes` cues relative to `start_seconds`; supported shapes are `REST`, `A`, `E`, `I`, `O`, `U`, `CLOSED`, `SMILE`, and `FROWN`. This is cue-driven stylized mouth animation, not automatic phoneme extraction from audio. For audio-derived timing, generate cue timestamps with Rhubarb or another licensed speech-analysis tool and attach them to the dialogue line.
+
+Clip changes can crossfade by adding actor metadata such as `transition: {"from_action":"idle","start_seconds":0.0,"duration_seconds":0.25}` while setting the actor's target `action` to the destination clip.
 
 ## Honest limitations
 
-The 60 entries are reusable procedural variants, not 60 individually illustrated character sheets. They share one skeleton topology. Hands expose five digit endpoints but are still rendered as simple strokes, not detailed polygonal hands. IK is now available for explicit hand/ankle targets, but there is not yet a full animation constraint graph, automatic foot planting across root motion, or production-grade motion retargeting. The reference poster is concept art and is not itself a runtime asset.
+The 60 entries are reusable procedural variants, not 60 individually illustrated character sheets. They share one skeleton topology. Hands expose five digit endpoints but are still rendered as simple strokes, not detailed polygonal hands. IK is available for explicit hand/ankle targets. The renderer now anchors the support foot during walk/run cycles and compensates for actor root travel and vertical bob. This is a deterministic two-bone foot-lock approximation, not a full animation constraint graph, physically based contact solver, or production-grade motion retargeting. The reference poster is concept art and is not itself a runtime asset.
 
 ## Validation
 
