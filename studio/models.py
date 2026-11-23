@@ -5,6 +5,8 @@ from pathlib import Path
 import json
 from typing import Any
 
+from .motion_library import validate_motion_track
+
 
 REQUIRED_EPISODE_KEYS = {"id", "title", "language", "format", "characters", "locations", "shots"}
 REQUIRED_FORMAT = {"fps": 30}
@@ -97,6 +99,22 @@ def validate_episode(project_dir: Path) -> list[str]:
         for actor in shot.get("actors", []):
             if actor not in known_chars:
                 errors.append(f"shots[{index}] references unknown character '{actor}'")
+        motion_tracks = shot.get("motion_tracks", {})
+        if not isinstance(motion_tracks, dict):
+            errors.append(f"shots[{index}].motion_tracks must be an object keyed by character id")
+        else:
+            for actor_id, track in motion_tracks.items():
+                if actor_id not in known_chars:
+                    errors.append(f"shots[{index}].motion_tracks references unknown character '{actor_id}'")
+                if actor_id not in shot.get("actors", []):
+                    errors.append(f"shots[{index}].motion_tracks actor '{actor_id}' is not in shot.actors")
+                if not isinstance(track, list):
+                    errors.append(f"shots[{index}].motion_tracks.{actor_id} must be an array")
+                else:
+                    errors.extend(
+                        f"shots[{index}].motion_tracks.{actor_id}: {message}"
+                        for message in validate_motion_track(track, float(duration) if isinstance(duration, (int, float)) else 0.0)
+                    )
         dialogue = shot.get("dialogue", [])
         for line_no, line in enumerate(dialogue):
             if not isinstance(line, dict) or line.get("speaker") not in known_chars:
