@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "youssef",
+  "display_name": "يوسف",
+  "role": "protagonist",
+  "style": "2d-ink-cartoon",
+  "design_lock": {
+    "head_shape": "soft_round",
+    "head_to_body_ratio": 0.31,
+    "outline_width": 7,
+    "keep_face_and_scarf_consistent": true
+  },
+  "appearance": {
+    "skin": "#F3D2B2",
+    "outline": "#171923",
+    "accent": "#C62828",
+    "scarf": true,
+    "hair": "#24212A",
+    "shirt": "#E9E6DF",
+    "trousers": "#26364A",
+    "shoes": "#C62828",
+    "head_radius": 72,
+    "eye_spacing": 48
+  },
+  "proportions": {
+    "head": 1,
+    "torso": 1,
+    "upper_arm": 0.92,
+    "forearm": 0.78,
+    "thigh": 1.02,
+    "shin": 0.98
+  },
+  "personality": [
+    "curious",
+    "brave_but_not_fearless",
+    "stubborn",
+    "kind"
+  ],
+  "continuity_rules": [
+    "red scarf is permanent",
+    "never change eye spacing or head silhouette",
+    "clothes change only when continuity state says so"
+  ]
+}
