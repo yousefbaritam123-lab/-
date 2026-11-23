@@ -378,6 +378,10 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
                 pose["_foot_plant"] = {
                     "root_dx_since_stance": (current_root - stance_root) / actor_scale
                 }
+        if not movement:
+            action_name = str(pose.get("action", shot.get("action", "idle")))
+            if action_name in ("walk", "run"):
+                pose["_foot_plant"] = {"root_dx_since_stance": 0.0}
         active_lines = [
             line for line in shot.get("dialogue", [])
             if float(line.get("start_seconds", 0.0)) <= local_time < float(line.get("end_seconds", shot.get("duration_seconds", 0)))
