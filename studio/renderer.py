@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -276,7 +277,8 @@ def _draw_dialogue_caption(output: Path, text: str, width: int, height: int) -> 
         kwargs = {"anchor": "mm", "font": font, "fill": (255, 255, 255, 255)}
         if raqm:
             kwargs.update({"direction": "rtl", "language": "ar"})
-        draw.multiline_text((width // 2, (box_top + height - pad) // 2), text, align="center", spacing=5, **kwargs)
+        caption = textwrap.fill(text, width=30)
+        draw.multiline_text((width // 2, (box_top + height - pad) // 2), caption, align="center", spacing=5, **kwargs)
         image.convert("RGB").save(output, format="PNG", optimize=True)
     except Exception as exc:
         raise RuntimeError(f"Could not render dialogue caption: {exc}") from exc
