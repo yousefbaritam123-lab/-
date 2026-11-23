@@ -48,11 +48,11 @@ class CharacterRigTests(unittest.TestCase):
 
     def test_ik_targets_drive_wrist_and_ankle(self):
         pose = sample_motion("idle", 0)
-        pose.update({"right_hand_target_x": 95, "right_hand_target_y": 45,
+        pose.update({"right_hand_target_x": 75, "right_hand_target_y": -80,
                      "left_ankle_target_x": -45, "left_ankle_target_y": 165})
         joints = build_skeleton(pose)
-        self.assertAlmostEqual(joints["right_wrist"][0], 95, places=5)
-        self.assertAlmostEqual(joints["right_wrist"][1], 45, places=5)
+        self.assertAlmostEqual(joints["right_wrist"][0], 75, places=5)
+        self.assertAlmostEqual(joints["right_wrist"][1], -80, places=5)
         self.assertAlmostEqual(joints["left_foot"][0], -45, places=5)
         self.assertAlmostEqual(joints["left_foot"][1], 165, places=5)
 
