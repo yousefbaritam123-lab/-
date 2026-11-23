@@ -101,9 +101,11 @@ def sample_motion(action: str, time_s: float, library: dict[str, Any] | None = N
         span = max(float(right["at"]) - float(left["at"]), 1e-9)
         local = _ease((phase - float(left["at"])) / span)
     lp, rp = left.get("pose", {}), right.get("pose", {})
-    result = {key: 0.0 for key in POSE_KEYS}
+    neutral = {"left_arm": -22.0, "right_arm": 22.0, "left_leg": -5.0, "right_leg": 5.0}
+    result = {key: neutral.get(key, 0.0) for key in POSE_KEYS}
     for key in POSE_KEYS:
-        result[key] = _mix(float(lp.get(key, 0.0)), float(rp.get(key, 0.0)), local)
+        base = neutral.get(key, 0.0)
+        result[key] = _mix(float(lp.get(key, base)), float(rp.get(key, base)), local)
     return result
 
 
