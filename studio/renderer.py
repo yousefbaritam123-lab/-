@@ -228,7 +228,8 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
         canvas.drawString(str(title), 64, 110, font, _paint(_color("#17202A"), 1, skia.Paint.kFill_Style))
     output.parent.mkdir(parents=True, exist_ok=True)
     image = surface.makeImageSnapshot()
-    if not image.save(str(output), skia.kPNG, 100):
+    image.save(str(output), skia.kPNG, 100)
+    if not output.is_file() or output.stat().st_size == 0:
         raise RuntimeError(f"Skia failed to encode frame at {time_s:.3f}s")
 
 
