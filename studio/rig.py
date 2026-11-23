@@ -11,7 +11,9 @@ from typing import Any
 POSE_KEYS = (
     "root_y", "torso", "head", "left_arm", "left_elbow",
     "right_arm", "right_elbow", "left_leg", "left_knee",
-    "right_leg", "right_knee", "mouth", "brow",
+    "right_leg", "right_knee", "left_wrist", "right_wrist",
+    "left_hand_spread", "right_hand_spread", "left_foot_angle", "right_foot_angle",
+    "gaze_x", "gaze_y", "blink", "mouth", "brow", "emotion",
 )
 
 DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
@@ -109,6 +111,36 @@ def sample_motion(action: str, time_s: float, library: dict[str, Any] | None = N
     return result
 
 
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def solve_two_bone(
+    origin: tuple[float, float],
+    target: tuple[float, float],
+    upper_length: float,
+    lower_length: float,
+    bend: float = 1.0,
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Solve a planar two-bone limb (shoulder/hip -> elbow/knee -> target)."""
+    dx, dy = target[0] - origin[0], target[1] - origin[1]
+    distance = math.hypot(dx, dy)
+    minimum = abs(upper_length - lower_length) + 1e-6
+    maximum = max(minimum, upper_length + lower_length - 1e-6)
+    distance = _clamp(distance, minimum, maximum)
+    if math.hypot(dx, dy) < 1e-9:
+        dx, dy = distance, 0.0
+    base_angle = math.atan2(dy, dx)
+    cosine = _clamp((upper_length**2 + distance**2 - lower_length**2) /
+                    (2.0 * upper_length * distance), -1.0, 1.0)
+    offset = math.acos(cosine) * (1.0 if bend >= 0 else -1.0)
+    elbow_angle = base_angle + offset
+    elbow = (origin[0] + math.cos(elbow_angle) * upper_length,
+             origin[1] + math.sin(elbow_angle) * upper_length)
+    end = (origin[0] + dx, origin[1] + dy)
+    return elbow, end
+
+
 def _point(origin: tuple[float, float], length: float, angle: float, upward: bool = False) -> tuple[float, float]:
     radians = math.radians(angle)
     direction = -1.0 if upward else 1.0
@@ -128,19 +160,61 @@ def build_skeleton(pose: dict[str, float], proportions: dict[str, float] | None 
         "right_shoulder": (chest[0] + 48, chest[1] + 10),
     }
     joints = {"hip": hip, "chest": chest, "neck": neck, "head": head, **shoulders}
+    limits = (p.get("joint_limits") or {})
     for side in ("left", "right"):
         sign = -1 if side == "left" else 1
         shoulder = joints[f"{side}_shoulder"]
-        arm = float(pose.get(f"{side}_arm", sign * 22)) + torso_angle
-        elbow_angle = arm + float(pose.get(f"{side}_elbow", sign * 8))
+        arm_limit = limits.get("shoulder", [-165, 165])
+        elbow_limit = limits.get("elbow", [-145, 145])
+        knee_limit = limits.get("knee", [-150, 150])
+        arm = _clamp(float(pose.get(f"{side}_arm", sign * 22)) + torso_angle,
+                     float(arm_limit[0]), float(arm_limit[1]))
+        elbow_delta = _clamp(float(pose.get(f"{side}_elbow", sign * 8)),
+                             float(elbow_limit[0]), float(elbow_limit[1]))
+        elbow_angle = arm + elbow_delta
         elbow = _point(shoulder, length("upper_arm", 92), arm)
-        hand = _point(elbow, length("forearm", 78), elbow_angle)
-        leg = float(pose.get(f"{side}_leg", sign * 5))
-        knee_angle = leg + float(pose.get(f"{side}_knee", 0.0))
+        wrist_delta = _clamp(float(pose.get(f"{side}_wrist", 0.0)), -90.0, 90.0)
+        wrist = _point(elbow, length("forearm", 78), elbow_angle)
+        hand = _point(wrist, length("hand", 22), elbow_angle + wrist_delta)
+        leg = _clamp(float(pose.get(f"{side}_leg", sign * 5)),
+                     float(limits.get("hip", [-100, 100])[0]),
+                     float(limits.get("hip", [-100, 100])[1]))
+        knee_delta = _clamp(float(pose.get(f"{side}_knee", 0.0)),
+                            float(knee_limit[0]), float(knee_limit[1]))
+        knee_angle = leg + knee_delta
         knee = _point(hip, length("thigh", 105), leg)
+        ankle_angle = _clamp(float(pose.get(f"{side}_foot_angle", 0.0)), -65.0, 65.0)
         foot = _point(knee, length("shin", 100), knee_angle)
+        toe = _point(foot, length("foot", 38), knee_angle + ankle_angle, upward=False)
+        hand_spread = _clamp(float(pose.get(f"{side}_hand_spread", 0.5)), 0.0, 1.0)
+        fingers = []
+        for finger_index in range(3):
+            fan = (finger_index - 1) * (8.0 + 10.0 * hand_spread)
+            fingers.append(_point(hand, length("finger", 17), elbow_angle + wrist_delta + fan))
+        joints[f"{side}_wrist"] = wrist
+        joints[f"{side}_toe"] = toe
+        joints[f"{side}_fingers"] = tuple(fingers)
         joints[f"{side}_elbow"] = elbow
         joints[f"{side}_hand"] = hand
         joints[f"{side}_knee"] = knee
         joints[f"{side}_foot"] = foot
     return joints
+
+
+
+def facial_pose(pose: dict[str, float], time_s: float) -> dict[str, float]:
+    """Return deterministic face controls with periodic blinks and gaze defaults."""
+    blink = _clamp(float(pose.get("blink", 0.0)), 0.0, 1.0)
+    # Short natural blink every ~3.7 seconds; explicit blink keyframes override it.
+    phase = (time_s % 3.7)
+    if 0.08 <= phase <= 0.22:
+        blink = max(blink, math.sin(math.pi * (phase - 0.08) / 0.14))
+    emotion = _clamp(float(pose.get("emotion", 0.0)), -1.0, 1.0)
+    return {
+        "blink": blink,
+        "gaze_x": _clamp(float(pose.get("gaze_x", 0.0)), -1.0, 1.0),
+        "gaze_y": _clamp(float(pose.get("gaze_y", 0.0)), -1.0, 1.0),
+        "brow": _clamp(float(pose.get("brow", 0.0)) + emotion * 0.35, -2.0, 2.0),
+        "mouth": _clamp(float(pose.get("mouth", 0.0)), 0.0, 1.0),
+        "emotion": emotion,
+    }
