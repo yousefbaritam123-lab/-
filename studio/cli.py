@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
     lip_cmd.add_argument("output", type=Path)
     lip_cmd.add_argument("--speaker", required=True)
     lip_cmd.add_argument("--line-start", type=float, default=0.0)
-    lip_cmd.add_argument("--dialog-text")
+    lip_cmd.add_argument("--dialog-file", type=Path)
     blend_cmd = sub.add_parser("blender-render", help="build and open an optional Blender scene")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
