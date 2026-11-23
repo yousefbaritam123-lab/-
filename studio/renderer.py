@@ -278,7 +278,8 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
 
 
 def render_episode_frames(project_dir: Path, start_frame: int = 0,
-                          max_frames: int | None = None) -> tuple[Path, int]:
+                          max_frames: int | None = None,
+                          resume: bool = False) -> tuple[Path, int]:
     episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
     # Resolve canonical character rigs once per render; shot overrides remain local.
     for character in episode.get("characters", []):
@@ -299,6 +300,11 @@ def render_episode_frames(project_dir: Path, start_frame: int = 0,
     stop = min(total, start + max_frames) if max_frames is not None else total
     frame_dir = project_dir / "renders" / "frames"
     frame_dir.mkdir(parents=True, exist_ok=True)
+    rendered = 0
     for frame_no in range(start, stop):
-        render_frame(episode, frame_no / fps, frame_dir / f"frame_{frame_no:06d}.png")
-    return frame_dir, stop - start
+        frame_path = frame_dir / f"frame_{frame_no:06d}.png"
+        if resume and frame_path.is_file() and frame_path.stat().st_size > 0:
+            continue
+        render_frame(episode, frame_no / fps, frame_path)
+        rendered += 1
+    return frame_dir, rendered
