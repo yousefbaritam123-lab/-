@@ -76,7 +76,7 @@ jobs:
                 "effects":[{"type":"vignette","intensity":0.18}]
               },
               {
-                "id":"class-medium","duration_seconds":5,"location":"class",
+                "id":"class-medium","duration_seconds":6,"location":"class",
                 "actors":["extra_006","extra_014","extra_021"],"action":"talk",
                 "positions":{
                   "extra_006":{"x":145,"y":735,"scale":0.68},
@@ -85,9 +85,9 @@ jobs:
                 },
                 "camera":{"move":{"from":{"x":0,"y":0,"zoom":1.02},"to":{"x":0,"y":-8,"zoom":1.10}}},
                 "motion_tracks":{
-                  "extra_006":[{"start":0,"end":2.5,"action":"explain"},{"start":2.5,"end":5,"action":"celebrate_small","transition_seconds":0.2}],
-                  "extra_014":[{"start":0,"end":5,"action":"listen"}],
-                  "extra_021":[{"start":0,"end":1.8,"action":"think"},{"start":1.8,"end":5,"action":"agree","transition_seconds":0.2}]
+                  "extra_006":[{"start":0,"end":2.5,"action":"explain"},{"start":2.5,"end":6,"action":"celebrate_small","transition_seconds":0.2}],
+                  "extra_014":[{"start":0,"end":6,"action":"listen"}],
+                  "extra_021":[{"start":0,"end":1.8,"action":"think"},{"start":1.8,"end":6,"action":"agree","transition_seconds":0.2}]
                 },
                 "dialogue":[
                   {"speaker":"extra_021","text":"هكذا نقدروا نكملوا الخدمة.","start_seconds":0.4,"end_seconds":2.5},
