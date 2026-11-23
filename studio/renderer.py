@@ -18,7 +18,7 @@ try:
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
 
-from .rig import build_skeleton, sample_motion
+from .rig import build_skeleton, facial_pose, sample_motion
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -84,6 +84,7 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
         if key in pose:
             pose[key] = float(value)
     joints = build_skeleton(pose, proportions)
+    face = facial_pose(pose, time_s)
 
     def point(name: str) -> tuple[float, float]:
         px, py = joints[name]
@@ -121,11 +122,21 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     limb(left_knee, left_foot, trousers, 15)
     limb(hip, right_knee, trousers, 17)
     limb(right_knee, right_foot, trousers, 15)
-    for fx, fy in (left_foot, right_foot):
-        canvas.drawRoundRect(skia.Rect.MakeLTRB(fx - 12, fy - 10, fx + 43, fy + 12),
-                             9, 9, _paint(ink, 1, skia.Paint.kFill_Style))
-        canvas.drawRoundRect(skia.Rect.MakeLTRB(fx - 8, fy - 7, fx + 39, fy + 8),
-                             7, 7, _paint(shoes, 1, skia.Paint.kFill_Style))
+    for side, (fx, fy) in (("left", left_foot), ("right", right_foot)):
+        tx, ty = point(f"{side}_toe")
+        shoe_path = skia.Path()
+        shoe_path.moveTo(fx - 13, fy - 9)
+        shoe_path.quadTo(fx + 8, fy - 17, tx + 13, ty - 5)
+        shoe_path.quadTo(tx + 26, ty + 8, tx - 2, ty + 10)
+        shoe_path.lineTo(fx - 15, fy + 7)
+        shoe_path.close()
+        canvas.drawPath(shoe_path, _paint(ink, 1, skia.Paint.kFill_Style))
+        inner = skia.Path()
+        inner.moveTo(fx - 8, fy - 5)
+        inner.quadTo(fx + 8, fy - 11, tx + 9, ty - 2)
+        inner.quadTo(tx + 18, ty + 5, tx - 2, ty + 5)
+        inner.close()
+        canvas.drawPath(inner, _paint(shoes, 1, skia.Paint.kFill_Style))
 
     limb(left_shoulder, left_elbow, shirt, 16)
     limb(left_elbow, left_hand, skin, 12)
@@ -155,9 +166,15 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
 
     limb(right_shoulder, right_elbow, shirt, 16)
     limb(right_elbow, right_hand, skin, 12)
-    for hx, hy in (left_hand, right_hand):
+    for side, (hx, hy) in (("left", left_hand), ("right", right_hand)):
+        wx, wy = point(f"{side}_wrist")
+        _line(canvas, (wx, wy), (hx, hy), ink, 3)
         canvas.drawCircle(hx, hy, 10, _paint(ink, 2, skia.Paint.kStroke_Style))
         canvas.drawCircle(hx, hy, 8, _paint(skin, 1, skia.Paint.kFill_Style))
+        finger_points = joints[f"{side}_fingers"]
+        for fx, fy in finger_points:
+            fy -= 180.0
+            _line(canvas, (hx, hy), (fx, fy), skin, 3)
 
     head_x, head_y = point("head")
     radius = float(appearance.get("head_radius", 72))
@@ -181,21 +198,28 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     canvas.drawPath(hair_path, _paint(hair, 1, skia.Paint.kFill_Style))
     eye_spacing = float(appearance.get("eye_spacing", 48)) / 2
     eye_y = head_y - 5
-    brow_raise = float(pose.get("brow", 0.0)) * 4
-    _line(canvas, (head_x - eye_spacing - 8, eye_y - 15 - brow_raise),
-          (head_x - eye_spacing + 7, eye_y - 17 - brow_raise), ink, 4)
-    _line(canvas, (head_x + eye_spacing - 7, eye_y - 17 - brow_raise),
-          (head_x + eye_spacing + 8, eye_y - 15 - brow_raise), ink, 4)
-    canvas.drawCircle(head_x - eye_spacing, eye_y, 5, _paint(ink, 1, skia.Paint.kFill_Style))
-    canvas.drawCircle(head_x + eye_spacing, eye_y, 5, _paint(ink, 1, skia.Paint.kFill_Style))
-    if float(pose.get("mouth", 0.0)) > .35:
+    gaze_x, gaze_y = face["gaze_x"] * 5.0, face["gaze_y"] * 4.0
+    brow_raise = face["brow"] * 4
+    for eye_x, tilt in ((head_x - eye_spacing, -1), (head_x + eye_spacing, 1)):
+        brow_start = (eye_x - 8, eye_y - 15 - brow_raise + tilt * face["emotion"] * 3)
+        brow_end = (eye_x + 7, eye_y - 17 - brow_raise - tilt * face["emotion"] * 3)
+        _line(canvas, brow_start, brow_end, ink, 4)
+        if face["blink"] > 0.72:
+            _line(canvas, (eye_x - 7, eye_y), (eye_x + 7, eye_y), ink, 4)
+        else:
+            eye_h = max(1.5, 5.0 * (1.0 - face["blink"]))
+            canvas.drawOval(skia.Rect.MakeLTRB(eye_x - 5 + gaze_x, eye_y - eye_h + gaze_y,
+                                               eye_x + 5 + gaze_x, eye_y + eye_h + gaze_y),
+                            _paint(ink, 1, skia.Paint.kFill_Style))
+    if face["mouth"] > .35:
         canvas.drawOval(skia.Rect.MakeLTRB(head_x - 10, head_y + 22,
                                            head_x + 10, head_y + 43),
                         _paint(ink, 2, skia.Paint.kFill_Style))
     else:
         mouth = skia.Path()
+        smile = face["emotion"] * 8.0
         mouth.moveTo(head_x - 15, head_y + 30)
-        mouth.quadTo(head_x, head_y + 39, head_x + 15, head_y + 30)
+        mouth.quadTo(head_x, head_y + 39 + smile, head_x + 15, head_y + 30)
         canvas.drawPath(mouth, _paint(ink, 4))
     canvas.restore()
 
