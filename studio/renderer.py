@@ -219,13 +219,23 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
             canvas.drawOval(skia.Rect.MakeLTRB(eye_x - 5 + gaze_x, eye_y - eye_h + gaze_y,
                                                eye_x + 5 + gaze_x, eye_y + eye_h + gaze_y),
                             _paint(ink, 1, skia.Paint.kFill_Style))
-    if face["mouth"] > .35:
-        canvas.drawOval(skia.Rect.MakeLTRB(head_x - 10, head_y + 22,
-                                           head_x + 10, head_y + 43),
+    shape = int(round(face.get("mouth_shape", 0.0)))
+    if shape in (1, 4, 5) or face["mouth"] > .35:
+        widths = {1: 13, 4: 16, 5: 12}
+        heights = {1: 20, 4: 15, 5: 10}
+        mw, mh = widths.get(shape, 10), heights.get(shape, 20)
+        canvas.drawOval(skia.Rect.MakeLTRB(head_x - mw, head_y + 27,
+                                           head_x + mw, head_y + 27 + mh),
                         _paint(ink, 2, skia.Paint.kFill_Style))
+    elif shape == 6:
+        _line(canvas, (head_x - 11, head_y + 34), (head_x + 11, head_y + 34), ink, 4)
     else:
         mouth = skia.Path()
         smile = face["emotion"] * 8.0
+        if shape == 8:
+            smile = -abs(smile) - 5
+        if shape == 7:
+            smile = abs(smile) + 8
         mouth.moveTo(head_x - 15, head_y + 30)
         mouth.quadTo(head_x, head_y + 39 + smile, head_x + 15, head_y + 30)
         canvas.drawPath(mouth, _paint(ink, 4))
