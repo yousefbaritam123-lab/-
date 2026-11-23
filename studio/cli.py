@@ -18,7 +18,7 @@ TEMPLATE = {
     "format": {"width": 1080, "height": 1920, "fps": 30, "duration_seconds": 100},
     "characters": [
         {"id": "youssef", "name": "يوسف", "rig": "assets/characters/youssef/character.toon.json", "scarf": True, "accent": "#C62828"},
-        {"id": "friend", "name": "الصديق", "rig": "assets/characters/friend/character.toon.json", "accent": "#2878C8"}
+        {"id": "adam", "name": "آدم", "rig": "assets/characters/adam/character.toon.json", "accent": "#2878C8"}
     ],
     "locations": [{
         "id": "street_01", "name": "شارع الحي",
@@ -38,6 +38,9 @@ def init_project(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     for folder in ("assets/characters", "assets/locations", "audio/dialogue", "audio/fx", "renders", "production", "continuity"):
         (path / folder).mkdir(parents=True, exist_ok=True)
+    bundled_assets = Path(__file__).resolve().parent.parent / "assets"
+    if bundled_assets.is_dir():
+        shutil.copytree(bundled_assets, path / "assets", dirs_exist_ok=True)
     episode_file = path / "episode.json"
     if not episode_file.exists():
         episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -48,7 +51,7 @@ def init_project(path: Path) -> None:
             "episode_number": 1, "previous_episode": None,
             "character_state": {
                 "youssef": {"wardrobe": "default", "personality": ["curious", "stubborn"], "known_facts": []},
-                "friend": {"wardrobe": "default", "personality": ["loyal"], "known_facts": []}
+                "adam": {"wardrobe": "default", "personality": ["loyal", "observant"], "known_facts": []}
             },
             "world_state": [], "unresolved_threads": []
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
