@@ -81,7 +81,7 @@ def _frame_audit(project_dir: Path, episode: dict[str, Any]) -> dict[str, Any]:
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str, Any]:
