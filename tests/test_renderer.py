@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,6 +44,26 @@ class RendererTests(unittest.TestCase):
             self.assertTrue((frame_dir / "frame_000000.png").is_file())
             self.assertTrue((frame_dir / "frame_000001.png").is_file())
 
+
+    def test_cast_catalog_profile_renders_by_cast_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            episode_path = project / "episode.json"
+            episode = json.loads(episode_path.read_text(encoding="utf-8"))
+            episode["format"]["duration_seconds"] = 1
+            episode["shots"] = [{
+                "id": "cast-shot", "duration_seconds": 1, "location": "street_01",
+                "actors": ["extra_actor"], "action": "wave", "dialogue": []
+            }]
+            episode["characters"] = [{
+                "id": "extra_actor", "name": "Extra", "cast_id": "extra_001",
+                "x": 270, "y": 730, "scale": 0.8
+            }]
+            episode_path.write_text(json.dumps(episode, ensure_ascii=False), encoding="utf-8")
+            frame_dir, rendered = render_episode_frames(project, start_frame=0, max_frames=1)
+            self.assertEqual(rendered, 1)
+            self.assertGreater((frame_dir / "frame_000000.png").stat().st_size, 1000)
 
     def test_resume_skips_existing_frames_and_repairs_empty_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
