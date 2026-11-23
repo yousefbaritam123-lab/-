@@ -10,6 +10,8 @@ from pathlib import Path
 from .models import validate_episode, read_json
 from .continuity import validate_continuity
 from .pipeline import build_production_plan
+from .story import build_next_episode_outline
+from .director import build_storyboard
 
 TEMPLATE = {
     "id": "episode-001",
@@ -111,6 +113,9 @@ def main(argv: list[str] | None = None) -> int:
     story_cmd = sub.add_parser("story-next", help="create the next serialized episode outline")
     story_cmd.add_argument("project", type=Path)
     story_cmd.add_argument("--title")
+    storyboard_cmd = sub.add_parser("storyboard", help="turn the latest story outline into an editable 100-second shot plan")
+    storyboard_cmd.add_argument("project", type=Path)
+    storyboard_cmd.add_argument("--outline", type=Path)
     image_cmd = sub.add_parser("prepare-character", help="remove image background and prepare a character manifest")
     image_cmd.add_argument("source", type=Path)
     image_cmd.add_argument("output", type=Path)
@@ -163,6 +168,35 @@ def main(argv: list[str] | None = None) -> int:
         episode = json.loads((args.project / "episode.json").read_text(encoding="utf-8"))
         output = encode_video(args.project, int(episode["format"]["fps"]))
         print(f"Video encoded: {output}")
+        return 0
+    if args.command == "story-next":
+        output = build_next_episode_outline(args.project, episode_title=args.title)
+        print(f"Story outline created: {output}")
+        return 0
+    if args.command == "storyboard":
+        output = build_storyboard(args.project, args.outline)
+        print(f"Editable storyboard created: {output}")
+        return 0
+    if args.command == "prepare-character":
+        from .image_character import prepare_character_image
+        output = prepare_character_image(args.source, args.output, args.character_id)
+        print(f"Character image manifest created: {output}")
+        return 0
+    if args.command == "lipsync":
+        from .lipsync import generate_visemes, attach_visemes
+        cues = generate_visemes(args.audio, args.output, speaker=args.speaker, dialog_file=args.dialog_file)
+        if args.episode or args.shot_id:
+            if not (args.episode and args.shot_id):
+                parser.error("--episode and --shot-id must be supplied together")
+            episode = json.loads(args.episode.read_text(encoding="utf-8"))
+            attach_visemes(episode, shot_id=args.shot_id, speaker=args.speaker, cues=cues)
+            args.episode.write_text(json.dumps(episode, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Generated {len(cues)} mouth cues: {args.output}")
+        return 0
+    if args.command == "blender-render":
+        from .blender_bridge import render_with_blender
+        output = render_with_blender(args.project, blender=args.blender)
+        print(f"Blender scene prepared: {output}")
         return 0
     return 2
 
