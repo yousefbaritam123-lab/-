@@ -427,11 +427,52 @@ def _draw_background(canvas: "skia.Canvas", width: int, height: int,
             yy=height*(.70+i*.022)
             canvas.drawLine(0,yy,width,yy,_paint(skia.ColorSetARGB(95,255,255,255),3))
     elif environment == "rooftop":
-        canvas.drawRect(skia.Rect.MakeLTRB(0,height*.72,width,height*.79),
+        # A recognizable North-African rooftop set: parapet, skyline, water tank,
+        # satellite dish, antenna and tiled roof plane with layered depth.
+        far_building = _paint(_color("#536273"), 1, skia.Paint.kFill_Style)
+        for bx, by, bw, bh in ((.02,.43,.17,.27),(.22,.49,.13,.21),(.68,.40,.18,.30),(.88,.47,.12,.23)):
+            canvas.drawRect(skia.Rect.MakeLTRB(width*bx,height*by,width*(bx+bw),height*(by+bh)),far_building)
+            for row in range(2):
+                for col in range(2):
+                    wx=width*(bx+.025+col*.065)
+                    wy=height*(by+.04+row*.085)
+                    canvas.drawRect(skia.Rect.MakeLTRB(wx,wy,wx+width*.028,wy+height*.035),
+                                    _paint(_color("#D6B88F"),1,skia.Paint.kFill_Style))
+        canvas.drawRect(skia.Rect.MakeLTRB(0,height*.70,width,height*.79),
                         _paint(_color("#B8A38A"),1,skia.Paint.kFill_Style))
+        canvas.drawRect(skia.Rect.MakeLTRB(0,height*.695,width,height*.708),
+                        _paint(_color("#E0D0B8"),1,skia.Paint.kFill_Style))
         for xx in (0.08,.34,.68,.91):
-            canvas.drawRect(skia.Rect.MakeLTRB(width*xx,height*.54,width*(xx+.08),height*.72),
+            canvas.drawRect(skia.Rect.MakeLTRB(width*xx,height*.54,width*(xx+.08),height*.70),
                             _paint(_color("#D6C7AF"),1,skia.Paint.kFill_Style))
+            canvas.drawLine(width*xx,height*.54,width*(xx+.08),height*.54,
+                            _paint(_color("#756858"),3))
+        # Rooftop water tank and its metal stand.
+        tank_x, tank_y = width*.77, height*.49
+        canvas.drawRect(skia.Rect.MakeLTRB(tank_x-width*.055,tank_y+height*.055,
+                                           tank_x+width*.055,tank_y+height*.16),
+                        _paint(_color("#344C59"),1,skia.Paint.kFill_Style))
+        canvas.drawRoundRect(skia.Rect.MakeLTRB(tank_x-width*.06,tank_y,tank_x+width*.06,tank_y+height*.09),
+                             12,12,_paint(_color("#557987"),1,skia.Paint.kFill_Style))
+        canvas.drawLine(tank_x-width*.06,tank_y+height*.09,tank_x+width*.06,tank_y+height*.09,
+                        _paint(_color("#243943"),3))
+        # Satellite dish and antenna silhouette.
+        dish_x, dish_y = width*.17, height*.55
+        dish = skia.Path()
+        dish.moveTo(dish_x-width*.035,dish_y-height*.01)
+        dish.quadTo(dish_x+width*.015,dish_y-height*.075,dish_x+width*.055,dish_y-height*.025)
+        dish.quadTo(dish_x+width*.005,dish_y+height*.015,dish_x-width*.035,dish_y-height*.01)
+        canvas.drawPath(dish,_paint(_color("#D7DCE0"),1,skia.Paint.kFill_Style))
+        canvas.drawLine(dish_x+width*.005,dish_y,dish_x+width*.025,dish_y+height*.13,
+                        _paint(_color("#5A5149"),4))
+        ax=width*.91
+        canvas.drawLine(ax,height*.43,ax,height*.57,_paint(_color("#3B4650"),3))
+        canvas.drawLine(ax-width*.025,height*.46,ax+width*.025,height*.46,_paint(_color("#3B4650"),2))
+        canvas.drawLine(ax-width*.018,height*.50,ax+width*.018,height*.50,_paint(_color("#3B4650"),2))
+        # Foreground roof seams add scale and a readable floor plane.
+        for i in range(1,7):
+            yy=height*(.72+i*.012)
+            canvas.drawLine(0,yy,width,yy,_paint(skia.ColorSetARGB(28,35,30,25),1))
     elif environment == "park":
         for xx, yy, rr in ((.12,.64,.055),(.82,.62,.07),(.93,.68,.045)):
             canvas.drawRect(skia.Rect.MakeLTRB(width*xx-width*.009,height*yy,width*xx+width*.009,height*.80),
