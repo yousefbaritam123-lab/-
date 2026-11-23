@@ -172,6 +172,21 @@ def foot_plant_targets(
     }
 
 
+def blend_motion(
+    from_action: str,
+    to_action: str,
+    time_s: float,
+    transition_seconds: float,
+    library: dict[str, Any] | None = None,
+) -> dict[str, float]:
+    """Crossfade two clips over a finite transition window using eased weights."""
+    duration = max(float(transition_seconds), 1e-6)
+    weight = _ease(_clamp(time_s / duration, 0.0, 1.0))
+    source = sample_motion(from_action, time_s, library)
+    target = sample_motion(to_action, time_s, library)
+    return {key: _mix(source[key], target[key], weight) for key in POSE_KEYS}
+
+
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
