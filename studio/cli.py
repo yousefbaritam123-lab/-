@@ -27,8 +27,8 @@ TEMPLATE = {
     }],
     "shots": [
         {"id": "shot-001", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "action": "walk", "dialogue": []},
-        {"id": "shot-002", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "action": "wave", "positions": {"youssef": {"x": 380}, "friend": {"x": 760}}, "dialogue": []},
-        {"id": "shot-003", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "action": "talk", "camera": {"zoom": 1.08}, "dialogue": []},
+        {"id": "shot-002", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "adam"], "action": "wave", "positions": {"youssef": {"x": 380}, "adam": {"x": 760}}, "dialogue": []},
+        {"id": "shot-003", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "adam"], "action": "talk", "camera": {"zoom": 1.08}, "dialogue": []},
         {"id": "shot-004", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "action": "idle", "dialogue": []}
     ]
 }
