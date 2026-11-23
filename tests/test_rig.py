@@ -75,6 +75,8 @@ class CharacterRigTests(unittest.TestCase):
         self.assertEqual(face["gaze_y"], -1)
         self.assertEqual(face["blink"], 1)
         self.assertGreater(face["brow"], 0)
+        mouth = facial_pose({"mouth_shape": 4}, 1.0)
+        self.assertEqual(mouth["mouth_shape"], 4)
 
     def test_new_emotion_clips_are_available(self):
         for action in ("point", "think", "celebrate", "sad", "surprised"):
