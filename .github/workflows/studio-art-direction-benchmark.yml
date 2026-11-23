@@ -96,7 +96,7 @@ jobs:
               }
             ]
           }
-          (root/"episode.json").write_text(json.dumps(episode,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+          (root/"episode.json").write_text(json.dumps(episode,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
       - name: Validate and render all 300 frames
         run: |
