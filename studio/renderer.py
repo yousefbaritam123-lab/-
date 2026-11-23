@@ -18,7 +18,7 @@ try:
 except ImportError as exc:  # pragma: no cover - depends on local optional runtime
     raise RuntimeError("Skia is required. Install dependencies with: pip install -r requirements.txt") from exc
 
-from .rig import build_skeleton, facial_pose, foot_plant_targets, sample_motion
+from .rig import blend_motion, build_skeleton, facial_pose, foot_plant_targets, sample_motion
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -80,7 +80,16 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     # Character-instance overrides let the 60-profile catalog share one rig topology.
     appearance = {**rig.get("appearance", {}), **actor.get("appearance", {})}
     proportions = {**rig.get("proportions", {}), **actor.get("proportions", {})}
-    pose = sample_motion(action, time_s, motion_library)
+    transition = actor.get("transition")
+    if transition and transition.get("from_action"):
+        transition_start = float(transition.get("start_seconds", 0.0))
+        transition_time = max(0.0, time_s - transition_start)
+        pose = blend_motion(
+            str(transition["from_action"]), action, transition_time,
+            float(transition.get("duration_seconds", 0.25)), motion_library,
+        )
+    else:
+        pose = sample_motion(action, time_s, motion_library)
     plant = actor.get("_foot_plant")
     if plant and action in ("walk", "run"):
         pose.update(foot_plant_targets(
