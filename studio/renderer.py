@@ -85,9 +85,10 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     if actor.get("flip", False):
         canvas.scale(-1, 1)
 
-    ink = _color(actor.get("outline", "#171923"))
-    skin = _color(actor.get("skin", "#F4F0E8"))
-    accent = _color(actor.get("accent", "#E34B4B"))
+    rig_appearance = actor.get("_rig", {}).get("appearance", {})
+    ink = _color(rig_appearance.get("outline", actor.get("outline", "#171923")))
+    skin = _color(rig_appearance.get("skin", actor.get("skin", "#F4F0E8")))
+    accent = _color(rig_appearance.get("accent", actor.get("accent", "#E34B4B")))
     shadow = _paint(skia.ColorSetARGB(48, 0, 0, 0), 1, skia.Paint.kFill_Style)
     canvas.drawOval(skia.Rect.MakeLTRB(-72, -5, 72, 17), shadow)
 
@@ -140,7 +141,7 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     mouth.moveTo(-17, head[1] + 28)
     mouth.quadTo(0, head[1] + (48 if talk and int(time_s * 8) % 2 else 39), 17, head[1] + 28)
     canvas.drawPath(mouth, _paint(ink, 5))
-    if actor.get("scarf", False):
+    if rig_appearance.get("scarf", actor.get("scarf", False)):
         scarf = skia.Path()
         scarf.moveTo(-48, -365)
         scarf.quadTo(0, -325, 50, -365)
@@ -236,6 +237,16 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
 def render_episode_frames(project_dir: Path, start_frame: int = 0,
                           max_frames: int | None = None) -> tuple[Path, int]:
     episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
+    # Resolve canonical character rigs once per render; shot overrides remain local.
+    for character in episode.get("characters", []):
+        rig_rel = character.get("rig")
+        if rig_rel:
+            rig_path = (project_dir / rig_rel).resolve()
+            if project_dir.resolve() not in rig_path.parents:
+                raise ValueError(f"Character rig path escapes project: {rig_rel}")
+            if not rig_path.is_file():
+                raise FileNotFoundError(f"Missing character rig: {rig_path}")
+            character["_rig"] = json.loads(rig_path.read_text(encoding="utf-8"))
     fps = int(episode["format"]["fps"])
     total = int(round(float(episode["format"]["duration_seconds"]) * fps))
     start = max(0, start_frame)
