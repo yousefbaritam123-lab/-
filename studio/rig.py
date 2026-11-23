@@ -39,6 +39,13 @@ DEFAULT_CLIPS: dict[str, dict[str, Any]] = {
         {"at": 0.75, "pose": {"root_y": -38, "torso": -18, "head": 7, "left_arm": 12, "left_elbow": -38, "right_arm": -12, "right_elbow": 38, "left_leg": -18, "left_knee": 25, "right_leg": 15, "right_knee": 42, "mouth": 1, "brow": 1}},
         {"at": 1.0, "pose": {"root_y": 0, "torso": -18, "head": 8, "left_arm": -65, "left_elbow": 24, "right_arm": 62, "right_elbow": -22, "left_leg": -48, "left_knee": 28, "right_leg": 42, "right_knee": -18, "mouth": 1, "brow": 1}},
     ]},
+    "kick": {"duration": 0.9, "loop": False, "keyframes": [
+        {"at": 0.0, "pose": {"root_y": 0, "torso": -3, "head": 1, "left_leg": -5, "left_knee": 2, "right_leg": 5, "right_knee": 0, "left_arm": -22, "right_arm": 22}},
+        {"at": 0.22, "pose": {"root_y": -7, "torso": -10, "head": 3, "left_leg": -8, "left_knee": 8, "right_leg": 34, "right_knee": 58, "left_arm": -48, "right_arm": 62, "left_elbow": 22, "right_elbow": -28}},
+        {"at": 0.52, "pose": {"root_y": -18, "torso": -15, "head": 5, "left_leg": -12, "left_knee": 12, "right_leg": 72, "right_knee": -12, "left_arm": -68, "right_arm": 88, "left_elbow": 28, "right_elbow": -18}},
+        {"at": 0.72, "pose": {"root_y": -8, "torso": 5, "head": -2, "left_leg": -8, "left_knee": 8, "right_leg": 38, "right_knee": 42, "left_arm": -42, "right_arm": 48}},
+        {"at": 1.0, "pose": {"root_y": 0, "torso": 0, "head": 0, "left_leg": -5, "left_knee": 2, "right_leg": 5, "right_knee": 0, "left_arm": -22, "right_arm": 22, "left_elbow": 8, "right_elbow": -8}}
+    ]},
     "wave": {"duration": 1.2, "loop": False, "keyframes": [
         {"at": 0, "pose": {"right_arm": 22, "right_elbow": -8}},
         {"at": .25, "pose": {"right_arm": 145, "right_elbow": -75, "head": -3}},
