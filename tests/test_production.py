@@ -15,7 +15,7 @@ class IterativeProductionTests(unittest.TestCase):
         init_project(project)
         episode_path = project / "episode.json"
         episode = json.loads(episode_path.read_text(encoding="utf-8"))
-        episode["format"].update({"width": 96, "height": 160, "fps": 2, "duration_seconds": 2})
+        episode["format"].update({"width": 240, "height": 426, "fps": 30, "duration_seconds": 2})
         episode["shots"] = [{
             "id": "shot-001", "duration_seconds": 2, "location": "street_01",
             "actors": ["youssef"], "action": "idle", "dialogue": []
@@ -35,7 +35,7 @@ class IterativeProductionTests(unittest.TestCase):
         folder = project / "renders" / "frames"
         folder.mkdir(parents=True, exist_ok=True)
         for n in range(start, start + count):
-            image = Image.new("RGB", (96, 160), (35, 65, 90))
+            image = Image.new("RGB", (240, 426), (35, 65, 90))
             draw = ImageDraw.Draw(image)
             draw.rectangle((10 + n, 20, 55 + n, 120), fill=(180, 110, 60))
             image.save(folder / f"frame_{n:06d}.png")
@@ -51,7 +51,7 @@ class IterativeProductionTests(unittest.TestCase):
                  patch("studio.production.certify_delivery", return_value=output):
                 report = run_production(project)
             self.assertEqual(report["status"], "delivered")
-            self.assertEqual(report["final_frame_audit"]["verified_frames"], 4)
+            self.assertEqual(report["final_frame_audit"]["verified_frames"], 60)
             self.assertTrue(report["quality_policy"]["human_visual_signoff_required"])
 
     def test_missing_audio_or_visual_signoff_blocks_delivery(self):
