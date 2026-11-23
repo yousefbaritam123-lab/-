@@ -6,6 +6,9 @@ on:
       - studio-pro-foundation
     paths:
       - ".github/workflows/studio-real-10s-render.yml"
+      - "studio/**"
+      - "assets/**"
+      - "examples/pilot-15s/**"
   workflow_dispatch:
 
 permissions:
