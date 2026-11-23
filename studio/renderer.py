@@ -96,7 +96,7 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     outline_width = float(rig.get("design_lock", {}).get("outline_width", 7))
 
     canvas.save()
-    canvas.translate(x, y - float(pose.get("root_y", 0.0)))
+    canvas.translate(x, y + float(pose.get("root_y", 0.0)))
     canvas.scale(scale, scale)
     if actor.get("flip", False):
         canvas.scale(-1, 1)
@@ -134,8 +134,8 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     torso.lineTo(hip[0] + 30, hip[1] - 2)
     torso.quadTo(28, chest[1] - 12, right_shoulder[0] + 8, right_shoulder[1] - 3)
     torso.close()
-    canvas.drawPath(torso, _paint(ink, outline_width, skia.Paint.kStroke_Style))
     canvas.drawPath(torso, _paint(shirt, 1, skia.Paint.kFill_Style))
+    canvas.drawPath(torso, _paint(ink, outline_width, skia.Paint.kStroke_Style))
     _line(canvas, neck, (neck[0], neck[1] + 30), skin, 20)
 
     if appearance.get("scarf", actor.get("scarf", False)):
