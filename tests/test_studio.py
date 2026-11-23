@@ -19,6 +19,15 @@ class StudioProjectTests(unittest.TestCase):
             self.assertEqual(len(plan["tasks"]), 10)
             self.assertEqual(plan["status"], "planning_only")
 
+    def test_init_copies_canonical_character_and_motion_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            self.assertTrue((project / "assets/characters/youssef/character.toon.json").is_file())
+            self.assertTrue((project / "assets/characters/adam/design_sheet.svg").is_file())
+            self.assertTrue((project / "assets/motions/motion_library.json").is_file())
+            self.assertTrue((project / "assets/locations/algerian_neighborhood/location.json").is_file())
+
     def test_duplicate_character_ids_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "episode"
