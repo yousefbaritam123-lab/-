@@ -91,6 +91,26 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
     for key, value in actor.get("pose", {}).items():
         if key in pose:
             pose[key] = float(value)
+    # Optional timed viseme cues are relative to each dialogue line's start.
+    viseme_codes = {"REST": 0, "A": 1, "E": 2, "I": 3, "O": 4, "U": 5,
+                    "CLOSED": 6, "SMILE": 7, "FROWN": 8}
+    for line in shot.get("dialogue", []):
+        if line.get("speaker") != actor.get("id") or "visemes" not in line:
+            continue
+        line_start = float(line.get("start_seconds", 0.0))
+        elapsed = time_s - line_start
+        cues = sorted(line.get("visemes", []), key=lambda cue: float(cue.get("at", 0.0)))
+        selected = None
+        for cue in cues:
+            if float(cue.get("at", 0.0)) <= elapsed:
+                selected = cue
+            else:
+                break
+        if selected is not None:
+            shape_name = str(selected.get("shape", "REST")).upper()
+            pose["mouth_shape"] = float(viseme_codes.get(shape_name, 0))
+            pose["mouth"] = 1.0 if shape_name in ("A", "O", "U") else 0.0
+        break
     joints = build_skeleton(pose, proportions)
     face = facial_pose(pose, time_s)
 
