@@ -33,7 +33,7 @@ class CharacterRigTests(unittest.TestCase):
         for key in ("left_wrist", "right_wrist", "left_fingers", "right_fingers",
                     "left_toe", "right_toe"):
             self.assertIn(key, joints)
-        self.assertEqual(len(joints["right_fingers"]), 3)
+        self.assertEqual(len(joints["right_fingers"]), 5)
 
     def test_joint_limits_prevent_unphysical_extremes(self):
         pose = sample_motion("idle", 0)
@@ -45,6 +45,16 @@ class CharacterRigTests(unittest.TestCase):
         shoulder = joints["right_shoulder"]
         elbow = joints["right_elbow"]
         self.assertLessEqual(abs(elbow[0] - shoulder[0]), 92.1)
+
+    def test_ik_targets_drive_wrist_and_ankle(self):
+        pose = sample_motion("idle", 0)
+        pose.update({"right_hand_target_x": 95, "right_hand_target_y": 45,
+                     "left_ankle_target_x": -45, "left_ankle_target_y": 165})
+        joints = build_skeleton(pose)
+        self.assertAlmostEqual(joints["right_wrist"][0], 95, places=5)
+        self.assertAlmostEqual(joints["right_wrist"][1], 45, places=5)
+        self.assertAlmostEqual(joints["left_foot"][0], -45, places=5)
+        self.assertAlmostEqual(joints["left_foot"][1], 165, places=5)
 
     def test_facial_controls_clamp_gaze_and_blink(self):
         face = facial_pose({"gaze_x": 10, "gaze_y": -10, "blink": 4, "emotion": 1}, .5)
