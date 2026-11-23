@@ -16,15 +16,19 @@ TEMPLATE = {
     "language": "ar-DZ",
     "format": {"width": 1080, "height": 1920, "fps": 30, "duration_seconds": 100},
     "characters": [
-        {"id": "youssef", "name": "يوسف", "rig": "assets/characters/youssef/character.toon.json"},
-        {"id": "friend", "name": "الصديق", "rig": "assets/characters/friend/character.toon.json"}
+        {"id": "youssef", "name": "يوسف", "rig": "assets/characters/youssef/character.toon.json", "scarf": True, "accent": "#C62828"},
+        {"id": "friend", "name": "الصديق", "rig": "assets/characters/friend/character.toon.json", "accent": "#2878C8"}
     ],
-    "locations": [{"id": "street_01", "name": "شارع الحي", "asset": "assets/locations/street_01"}],
+    "locations": [{
+        "id": "street_01", "name": "شارع الحي",
+        "sky_top": "#78BCEB", "sky_bottom": "#F6D9B5",
+        "hill": "#719C70", "ground": "#527B4F"
+    }],
     "shots": [
-        {"id": "shot-001", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "dialogue": []},
-        {"id": "shot-002", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "dialogue": []},
-        {"id": "shot-003", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "dialogue": []},
-        {"id": "shot-004", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "dialogue": []}
+        {"id": "shot-001", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "action": "walk", "dialogue": []},
+        {"id": "shot-002", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "action": "wave", "positions": {"youssef": {"x": 380}, "friend": {"x": 760}}, "dialogue": []},
+        {"id": "shot-003", "duration_seconds": 25, "location": "street_01", "actors": ["youssef", "friend"], "action": "talk", "camera": {"zoom": 1.08}, "dialogue": []},
+        {"id": "shot-004", "duration_seconds": 25, "location": "street_01", "actors": ["youssef"], "action": "idle", "dialogue": []}
     ]
 }
 
@@ -39,16 +43,13 @@ def init_project(path: Path) -> None:
     continuity_file = path / "continuity.json"
     if not continuity_file.exists():
         continuity_file.write_text(json.dumps({
-            "schema_version": 1,
-            "series_id": "youssef-daily-life",
-            "episode_number": 1,
-            "previous_episode": None,
+            "schema_version": 1, "series_id": "youssef-daily-life",
+            "episode_number": 1, "previous_episode": None,
             "character_state": {
                 "youssef": {"wardrobe": "default", "personality": ["curious", "stubborn"], "known_facts": []},
                 "friend": {"wardrobe": "default", "personality": ["loyal"], "known_facts": []}
             },
-            "world_state": [],
-            "unresolved_threads": []
+            "world_state": [], "unresolved_threads": []
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Project initialized: {path.resolve()}")
 
@@ -56,9 +57,10 @@ def init_project(path: Path) -> None:
 def doctor() -> int:
     checks = {
         "Python 3.10+": sys.version_info >= (3, 10),
+        "Skia renderer": _module_available("skia"),
+        "imageio-ffmpeg": _module_available("imageio_ffmpeg"),
         "Node.js": shutil.which("node") is not None,
         "pnpm": shutil.which("pnpm") is not None,
-        "FFmpeg": shutil.which("ffmpeg") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
     }
     for label, ok in checks.items():
@@ -67,14 +69,34 @@ def doctor() -> int:
     return 0 if checks["Python 3.10+"] else 1
 
 
+def _module_available(name: str) -> bool:
+    try:
+        __import__(name)
+        return True
+    except ImportError:
+        return False
+
+
+def _validate(project: Path) -> bool:
+    errors = validate_episode(project)
+    if errors:
+        print("EPISODE VALIDATION FAILED")
+        for error in errors:
+            print(f"- {error}")
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="studio", description="Stickman Studio Pro production manager")
+    parser = argparse.ArgumentParser(prog="studio", description="Stickman Studio Pro production manager and renderer")
     sub = parser.add_subparsers(dest="command", required=True)
     init_cmd = sub.add_parser("init", help="create a new episode project")
     init_cmd.add_argument("project", type=Path)
-    for name in ("validate", "plan"):
+    for name in ("validate", "plan", "render", "encode"):
         cmd = sub.add_parser(name)
         cmd.add_argument("project", type=Path)
+        if name == "render":
+            cmd.add_argument("--frames", help="render frame range START:END (end excluded); default: remaining episode")
     sub.add_parser("doctor", help="check local production tools")
     args = parser.parse_args(argv)
 
@@ -84,22 +106,36 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return doctor()
     if args.command == "validate":
-        errors = validate_episode(args.project)
-        if errors:
-            print("EPISODE VALIDATION FAILED")
-            for error in errors:
-                print(f"- {error}")
-            return 1
-        print("EPISODE STRUCTURE VALID")
-        return 0
+        return 0 if _validate(args.project) else 1
     if args.command == "plan":
-        errors = validate_episode(args.project)
-        if errors:
-            print("Cannot create plan; fix validation errors first:")
-            for error in errors:
-                print(f"- {error}")
+        if not _validate(args.project):
             return 1
         print(f"Production plan created: {build_production_plan(args.project)}")
+        return 0
+    if args.command == "render":
+        if not _validate(args.project):
+            return 1
+        start, count = 0, None
+        if args.frames:
+            try:
+                left, right = args.frames.split(":", 1)
+                start, end = int(left), int(right)
+                if start < 0 or end <= start:
+                    raise ValueError
+                count = end - start
+            except ValueError:
+                parser.error("--frames must be a valid START:END range, e.g. 0:300")
+        from .renderer import render_episode_frames
+        folder, rendered = render_episode_frames(args.project, start, count)
+        print(f"Rendered {rendered} frame(s) into {folder}")
+        return 0
+    if args.command == "encode":
+        if not _validate(args.project):
+            return 1
+        from .media import encode_video
+        episode = json.loads((args.project / "episode.json").read_text(encoding="utf-8"))
+        output = encode_video(args.project, int(episode["format"]["fps"]))
+        print(f"Video encoded: {output}")
         return 0
     return 2
 
