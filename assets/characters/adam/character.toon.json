@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "adam",
+  "display_name": "آدم",
+  "role": "recurring_friend",
+  "style": "2d-ink-cartoon",
+  "design_lock": {
+    "head_shape": "slightly_oval",
+    "head_to_body_ratio": 0.29,
+    "outline_width": 7
+  },
+  "appearance": {
+    "skin": "#B97850",
+    "outline": "#171923",
+    "accent": "#2878C8",
+    "scarf": false,
+    "hair": "#171923",
+    "shirt": "#2878C8",
+    "trousers": "#344052",
+    "shoes": "#F1E8D8",
+    "head_radius": 68,
+    "eye_spacing": 45
+  },
+  "proportions": {
+    "head": 0.96,
+    "torso": 1.02,
+    "upper_arm": 0.96,
+    "forearm": 0.82,
+    "thigh": 1,
+    "shin": 0.96
+  },
+  "personality": [
+    "loyal",
+    "observant",
+    "dry_humor",
+    "careful"
+  ],
+  "continuity_rules": [
+    "blue jacket is signature outfit",
+    "never add a red scarf",
+    "preserve oval head and palette"
+  ]
+}
