@@ -78,7 +78,7 @@ def frame(t):
         centered(d,"حتى القليل قد يصنع فرقاً كبيراً.",1090,small,(245,239,226))
     # title and subtle frame
     centered(d,"آخر قطعة خبز",70,font,(255,224,160),2)
-    d.rectangle((18,18,W-18,H-18),outline=(255,255,255,35),width=2)
+    d.rectangle((18,18,W-18,H-18),outline=(78,84,98),width=2)
     return im
 # Render frames directly into ffmpeg to avoid thousands of temporary images.
 cmd=["ffmpeg","-y","-loglevel","error","-f","rawvideo","-pix_fmt","rgb24","-s",f"{W}x{H}","-r",str(FPS),"-i","-","-an","-c:v","libx264","-preset","ultrafast","-crf","22","-pix_fmt","yuv420p","output/silent.mp4"]
