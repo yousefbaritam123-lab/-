@@ -13,7 +13,7 @@ BEAT_PERFORMANCES = {
     "escalation": ("run", "dodge", "surprised", "surprised"),
     "turning_point": ("think", "explain", "listen", "agree"),
     "payoff": ("celebrate_small", "agree", "laugh", "celebrate"),
-    "cliffhanger": ("think", "surprised", "wait", "look"),
+    "cliffhanger": ("think", "surprised", "wait", "listen"),
 }
 
 CAMERAS = {
