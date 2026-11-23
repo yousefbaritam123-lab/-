@@ -249,9 +249,9 @@ def _draw_character(canvas: "skia.Canvas", actor: dict[str, Any], time_s: float,
                                                eye_x + 5 + gaze_x, eye_y + eye_h + gaze_y),
                             _paint(ink, 1, skia.Paint.kFill_Style))
     shape = int(round(face.get("mouth_shape", 0.0)))
-    if shape in (1, 4, 5) or face["mouth"] > .35:
-        widths = {1: 13, 4: 16, 5: 12}
-        heights = {1: 20, 4: 15, 5: 10}
+    if shape in (1, 2, 3, 4, 5) or face["mouth"] > .35:
+        widths = {1: 13, 2: 15, 3: 7, 4: 16, 5: 12}
+        heights = {1: 20, 2: 9, 3: 12, 4: 15, 5: 10}
         mw, mh = widths.get(shape, 10), heights.get(shape, 20)
         canvas.drawOval(skia.Rect.MakeLTRB(head_x - mw, head_y + 27,
                                            head_x + mw, head_y + 27 + mh),
