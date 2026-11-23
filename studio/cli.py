@@ -13,6 +13,7 @@ from .pipeline import build_production_plan
 from .story import build_next_episode_outline
 from .director import build_storyboard
 from .assembly import assemble_storyboard
+from .cast import add_cast_character, list_cast_profiles
 
 TEMPLATE = {
     "id": "episode-001",
@@ -131,6 +132,16 @@ def main(argv: list[str] | None = None) -> int:
     lip_cmd.add_argument("--episode", type=Path, help="optional episode.json to update in place")
     lip_cmd.add_argument("--shot-id", help="shot containing the speaker dialogue line")
     lip_cmd.add_argument("--dialog-file", type=Path)
+    cast_list_cmd = sub.add_parser("cast-list", help="list all 60 built-in character profiles")
+    cast_list_cmd.add_argument("project", type=Path)
+    cast_add_cmd = sub.add_parser("cast-add", help="add a catalog character to an episode shot")
+    cast_add_cmd.add_argument("project", type=Path)
+    cast_add_cmd.add_argument("cast_id")
+    cast_add_cmd.add_argument("--shot-id", default="shot-001")
+    cast_add_cmd.add_argument("--actor-id")
+    cast_add_cmd.add_argument("--x", type=float, default=700)
+    cast_add_cmd.add_argument("--y", type=float, default=1450)
+    cast_add_cmd.add_argument("--action", default="idle")
     blend_cmd = sub.add_parser("blender-render", help="build and open an optional Blender scene")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
@@ -141,6 +152,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "doctor":
         return doctor()
+    if args.command == "cast-list":
+        for item in list_cast_profiles(args.project):
+            print(f"{item['id']} | {item.get('display_name', item['id'])} | {item.get('role', 'character')}")
+        return 0
+    if args.command == "cast-add":
+        actor = add_cast_character(
+            args.project, args.cast_id, shot_id=args.shot_id,
+            actor_id=args.actor_id, x=args.x, y=args.y, action=args.action,
+        )
+        print(f"Added {actor['id']} ({actor['cast_id']}) to {args.shot_id}")
+        return 0
     if args.command == "validate":
         return 0 if _validate(args.project) else 1
     if args.command == "plan":
