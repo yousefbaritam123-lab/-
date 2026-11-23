@@ -142,6 +142,36 @@ def sample_motion(action: str, time_s: float, library: dict[str, Any] | None = N
     return result
 
 
+def foot_plant_targets(
+    action: str,
+    time_s: float,
+    proportions: dict[str, float] | None = None,
+    *,
+    root_dx_since_stance: float = 0.0,
+    root_y: float = 0.0,
+) -> dict[str, float]:
+    """Return IK ankle targets for the support foot of a looping walk/run cycle.
+
+    root_dx_since_stance is actor-root travel since the current stance began,
+    expressed in the character's local rig units. The support ankle is held at
+    its stance-start world position while the root advances.
+    """
+    if action not in ("walk", "run"):
+        return {}
+    clip = DEFAULT_CLIPS[action]
+    duration = max(float(clip.get("duration", 1.0)), 1e-6)
+    phase = (time_s % duration) / duration
+    side = "left" if phase < 0.5 else "right"
+    stance_phase = 0.0 if side == "left" else 0.5
+    stance_pose = sample_motion(action, stance_phase * duration)
+    anchor = build_skeleton(stance_pose, proportions)[f"{side}_foot"]
+    return {
+        f"{side}_ankle_target_x": anchor[0] - root_dx_since_stance,
+        f"{side}_ankle_target_y": anchor[1] - root_y,
+        f"{side}_ik_bend": -1.0 if side == "left" else 1.0,
+    }
+
+
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
