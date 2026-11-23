@@ -106,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         cmd.add_argument("project", type=Path)
         if name == "render":
             cmd.add_argument("--frames", help="render frame range START:END (end excluded); default: remaining episode")
+            cmd.add_argument("--resume", action="store_true", help="skip already rendered non-empty frames")
     sub.add_parser("doctor", help="check local production tools")
     args = parser.parse_args(argv)
 
@@ -135,8 +136,8 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError:
                 parser.error("--frames must be a valid START:END range, e.g. 0:300")
         from .renderer import render_episode_frames
-        folder, rendered = render_episode_frames(args.project, start, count)
-        print(f"Rendered {rendered} frame(s) into {folder}")
+        folder, rendered = render_episode_frames(args.project, start, count, resume=args.resume)
+        print(f"Rendered {rendered} new frame(s) into {folder}")
         return 0
     if args.command == "encode":
         if not _validate(args.project):
