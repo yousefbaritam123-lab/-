@@ -89,7 +89,7 @@ class CharacterRigTests(unittest.TestCase):
         start = blend_motion("idle", "celebrate", 0.0, 0.4)
         end = blend_motion("idle", "celebrate", 0.4, 0.4)
         self.assertAlmostEqual(start["left_arm"], sample_motion("idle", 0)["left_arm"])
-        self.assertAlmostEqual(end["left_arm"], sample_motion("celebrate", 0)["left_arm"])
+        self.assertAlmostEqual(end["left_arm"], sample_motion("celebrate", 0.4)["left_arm"])
 
     def test_unknown_action_falls_back_to_idle(self):
         self.assertEqual(sample_motion("missing", .2), sample_motion("idle", .2))
