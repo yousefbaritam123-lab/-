@@ -207,6 +207,8 @@ def solve_two_bone(
     if math.hypot(dx, dy) < 1e-9:
         dx, dy = distance, 0.0
     base_angle = math.atan2(dy, dx)
+    # Preserve direction while clamping the end effector to the reachable annulus.
+    dx, dy = math.cos(base_angle) * distance, math.sin(base_angle) * distance
     cosine = _clamp((upper_length**2 + distance**2 - lower_length**2) /
                     (2.0 * upper_length * distance), -1.0, 1.0)
     offset = math.acos(cosine) * (1.0 if bend >= 0 else -1.0)
