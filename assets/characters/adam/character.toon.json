@@ -7,7 +7,16 @@
   "design_lock": {
     "head_shape": "slightly_oval",
     "head_to_body_ratio": 0.29,
-    "outline_width": 7
+    "outline_width": 7,
+    "joint_topology": "shoulder-elbow-wrist-fingers / hip-knee-ankle-toe",
+    "face_controls": [
+      "blink",
+      "gaze_x",
+      "gaze_y",
+      "brow",
+      "mouth",
+      "emotion"
+    ]
   },
   "appearance": {
     "skin": "#B97850",
@@ -27,7 +36,28 @@
     "upper_arm": 0.96,
     "forearm": 0.82,
     "thigh": 1,
-    "shin": 0.96
+    "shin": 0.96,
+    "hand": 0.23,
+    "finger": 0.2,
+    "foot": 0.41,
+    "joint_limits": {
+      "shoulder": [
+        -165,
+        165
+      ],
+      "elbow": [
+        -138,
+        138
+      ],
+      "hip": [
+        -82,
+        82
+      ],
+      "knee": [
+        -8,
+        145
+      ]
+    }
   },
   "personality": [
     "loyal",
