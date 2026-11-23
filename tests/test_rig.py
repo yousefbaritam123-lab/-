@@ -40,6 +40,18 @@ class CharacterRigTests(unittest.TestCase):
             self.assertIn(key, joints)
         self.assertEqual(len(joints["right_fingers"]), 5)
 
+    def test_individual_finger_curl_changes_digit_length(self):
+        open_pose = build_skeleton(sample_motion("idle", 0))
+        curled_pose = sample_motion("idle", 0)
+        curled_pose["right_index_curl"] = 1.0
+        curled = build_skeleton(curled_pose)
+        wrist = curled["right_hand"]
+        open_tip = open_pose["right_fingers"][0]
+        curled_tip = curled["right_fingers"][0]
+        open_length = ((open_tip[0]-open_pose["right_hand"][0])**2 + (open_tip[1]-open_pose["right_hand"][1])**2)**0.5
+        curled_length = ((curled_tip[0]-wrist[0])**2 + (curled_tip[1]-wrist[1])**2)**0.5
+        self.assertLess(curled_length, open_length)
+
     def test_joint_limits_prevent_unphysical_extremes(self):
         pose = sample_motion("idle", 0)
         pose["right_arm"] = 900
