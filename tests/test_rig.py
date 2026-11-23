@@ -91,6 +91,15 @@ class CharacterRigTests(unittest.TestCase):
         self.assertAlmostEqual(start["left_arm"], sample_motion("idle", 0)["left_arm"])
         self.assertAlmostEqual(end["left_arm"], sample_motion("celebrate", 0.4)["left_arm"])
 
+    def test_kick_action_has_windup_extension_and_recovery(self):
+        windup = sample_motion("kick", 0.2)
+        extension = sample_motion("kick", 0.48)
+        recovery = sample_motion("kick", 0.85)
+        self.assertGreater(windup["right_knee"], 0)
+        self.assertGreater(extension["right_leg"], windup["right_leg"])
+        self.assertLess(extension["right_knee"], windup["right_knee"])
+        self.assertAlmostEqual(recovery["right_leg"], sample_motion("idle", 0)["right_leg"], delta=30)
+
     def test_unknown_action_falls_back_to_idle(self):
         self.assertEqual(sample_motion("missing", .2), sample_motion("idle", .2))
 
