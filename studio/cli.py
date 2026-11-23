@@ -14,6 +14,7 @@ from .story import build_next_episode_outline
 from .director import build_storyboard
 from .assembly import assemble_storyboard
 from .cast import add_cast_character, list_cast_profiles
+from .quality import audit_episode, certify_delivery
 
 TEMPLATE = {
     "id": "episode-001",
@@ -112,6 +113,8 @@ def main(argv: list[str] | None = None) -> int:
             cmd.add_argument("--frames", help="render frame range START:END (end excluded); default: remaining episode")
             cmd.add_argument("--resume", action="store_true", help="skip already rendered non-empty frames")
     sub.add_parser("doctor", help="check local production tools")
+    for name in ("qc", "finalize"):
+        sub.add_parser(name, help="audit episode or certify final delivery")
     story_cmd = sub.add_parser("story-next", help="create the next serialized episode outline")
     story_cmd.add_argument("project", type=Path)
     story_cmd.add_argument("--title")
@@ -165,6 +168,23 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "validate":
         return 0 if _validate(args.project) else 1
+    if args.command == "qc":
+        report = audit_episode(args.project)
+        print("QC " + report["status"] + ": " + str(report["summary"]))
+        for error in report["errors"]:
+            print("ERROR: " + error)
+        for warning in report["warnings"]:
+            print("WARNING: " + warning)
+        print("Report: " + str(args.project / "production" / "quality_report.json"))
+        return 0 if report["delivery_eligible"] else 1
+    if args.command == "finalize":
+        try:
+            output = certify_delivery(args.project)
+        except Exception as exc:
+            print("DELIVERY BLOCKED: " + str(exc))
+            return 1
+        print("DELIVERED: " + str(output))
+        return 0
     if args.command == "plan":
         if not _validate(args.project):
             return 1
