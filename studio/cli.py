@@ -266,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
                     "reviewer": args.reviewer, "notes": args.notes}
         target = args.project / "production" / "human_visual_approval.json"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("Visual approval recorded: " + str(target))
         return 0
     if args.command == "blender-render":
