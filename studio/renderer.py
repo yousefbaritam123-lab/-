@@ -453,8 +453,24 @@ def render_episode_frames(project_dir: Path, start_frame: int = 0,
                           max_frames: int | None = None,
                           resume: bool = False) -> tuple[Path, int]:
     episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
+    # Resolve optional cast catalog IDs into per-instance visual/proportion overrides.
+    catalog_path = project_dir / "assets" / "characters" / "cast_60" / "catalog.json"
+    cast_catalog = None
+    if catalog_path.is_file():
+        cast_catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    cast_by_id = {
+        item.get("id"): item for item in (cast_catalog or {}).get("characters", [])
+    }
     # Resolve canonical character rigs once per render; shot overrides remain local.
     for character in episode.get("characters", []):
+        cast_id = character.get("cast_id")
+        if cast_id:
+            profile = cast_by_id.get(cast_id)
+            if profile is None:
+                raise ValueError(f"Unknown cast_id '{cast_id}' for character {character.get('id')}")
+            character.setdefault("appearance", dict(profile.get("appearance", {})))
+            character.setdefault("proportions", dict(profile.get("proportions", {})))
+            character.setdefault("rig", profile.get("rig", (cast_catalog or {}).get("shared_rig")))
         rig_rel = character.get("rig")
         if rig_rel:
             rig_path = (project_dir / rig_rel).resolve()
