@@ -33,16 +33,75 @@ def main():
     scene["studio_manifest"]=str(Path(args.manifest).resolve())
     root=Path(manifest["assets_root"])
     for char in manifest.get("characters",[]):
-        name=char.get("image") or char.get("cutout")
-        if not name: continue
-        path=Path(name)
-        if not path.is_absolute(): path=root/path
-        if not path.is_file():
-            print("WARNING missing character image:",path); continue
-        image=bpy.data.images.load(str(path),check_existing=True)
-        bpy.ops.object.empty_add(type="IMAGE",location=(0,0,0))
-        obj=bpy.context.object; obj.name="CharacterReference_"+str(char.get("id","unknown"))
-        obj.data=image; obj.empty_display_size=4
+        char_id=str(char.get("id","unknown"))
+        layered=char.get("layered_parts",{})
+        if isinstance(layered,dict) and layered:
+            # Rigid 2D cutout rig: each supplied transparent PNG is attached
+            # to a named bone. Hidden pixels and pivots must be authored in
+            # the manifest; this does not infer missing artwork from one PNG.
+            arm_data=bpy.data.armatures.new("RigData_"+char_id)
+            arm_obj=bpy.data.objects.new("Rig_"+char_id,arm_data)
+            scene.collection.objects.link(arm_obj)
+            bpy.context.view_layer.objects.active=arm_obj
+            arm_obj.select_set(True)
+            bpy.ops.object.mode_set(mode="EDIT")
+            bones={}
+            definitions={
+              "root":((0,0,0),(0,1,0),None),
+              "torso":((0,1,0),(0,3,0),"root"),
+              "head":((0,3,0),(0,4,0),"torso"),
+              "upper_arm.L":((-.45,2.8,0),(-1.2,2.0,0),"torso"),
+              "forearm.L":((-1.2,2.0,0),(-1.6,1.3,0),"upper_arm.L"),
+              "hand.L":((-1.6,1.3,0),(-1.9,1.1,0),"forearm.L"),
+              "upper_arm.R":((.45,2.8,0),(1.2,2.0,0),"torso"),
+              "forearm.R":((1.2,2.0,0),(1.6,1.3,0),"upper_arm.R"),
+              "hand.R":((1.6,1.3,0),(1.9,1.1,0),"forearm.R"),
+              "thigh.L":((-.2,1,0),(-.35,0,0),"root"),
+              "shin.L":((-.35,0,0),(-.4,-1,0),"thigh.L"),
+              "foot.L":((-.4,-1,0),(-.8,-1,0),"shin.L"),
+              "thigh.R":((.2,1,0),(.35,0,0),"root"),
+              "shin.R":((.35,0,0),(.4,-1,0),"thigh.R"),
+              "foot.R":((.4,-1,0),(.8,-1,0),"shin.R")
+            }
+            for bone_name,(head,tail,parent_name) in definitions.items():
+                bone=arm_data.edit_bones.new(bone_name)
+                bone.head=head; bone.tail=tail
+                if parent_name: bone.parent=bones[parent_name]
+                bones[bone_name]=bone
+            bpy.ops.object.mode_set(mode="OBJECT")
+            for part_name,part in layered.items():
+                image_name=part.get("image")
+                bone_name=part.get("bone")
+                if not image_name or bone_name not in definitions:
+                    print("WARNING invalid layered part:",char_id,part_name); continue
+                image_path=Path(image_name)
+                if not image_path.is_absolute(): image_path=root/image_path
+                if not image_path.is_file():
+                    print("WARNING missing layered part image:",image_path); continue
+                image=bpy.data.images.load(str(image_path),check_existing=True)
+                bpy.ops.object.empty_add(type="IMAGE",location=(0,0,0))
+                obj=bpy.context.object
+                obj.name=char_id+"_"+part_name
+                obj.data=image
+                obj.empty_display_size=float(part.get("size",1.0))
+                obj.parent=arm_obj
+                obj.parent_type="BONE"
+                obj.parent_bone=bone_name
+                offset=part.get("offset",[0,0,0])
+                obj.location=(float(offset[0]),float(offset[1]),float(offset[2]))
+                obj.rotation_euler[2]=float(part.get("rotation_degrees",0))*3.14159265/180
+            arm_obj.select_set(False)
+        else:
+            name=char.get("image") or char.get("cutout")
+            if not name: continue
+            path=Path(name)
+            if not path.is_absolute(): path=root/path
+            if not path.is_file():
+                print("WARNING missing character image:",path); continue
+            image=bpy.data.images.load(str(path),check_existing=True)
+            bpy.ops.object.empty_add(type="IMAGE",location=(0,0,0))
+            obj=bpy.context.object; obj.name="CharacterReference_"+char_id
+            obj.data=image; obj.empty_display_size=4
     bpy.ops.wm.save_as_mainfile(filepath=str(output/(manifest["episode_id"]+".blend")))
     print("BLENDER_SCENE_READY",output)
 
