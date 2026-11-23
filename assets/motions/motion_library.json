@@ -542,5 +542,233 @@
         }
       ]
     }
+  },
+  "motions": {
+    "stand": {
+      "base_action": "idle",
+      "tags": [
+        "neutral",
+        "standing"
+      ]
+    },
+    "walk": {
+      "base_action": "walk",
+      "tags": [
+        "locomotion",
+        "travel"
+      ]
+    },
+    "run": {
+      "base_action": "run",
+      "tags": [
+        "locomotion",
+        "urgent"
+      ]
+    },
+    "greet": {
+      "base_action": "wave",
+      "tags": [
+        "social",
+        "friendly"
+      ]
+    },
+    "wave": {
+      "base_action": "wave",
+      "tags": [
+        "social",
+        "friendly"
+      ]
+    },
+    "talk": {
+      "base_action": "talk",
+      "tags": [
+        "dialogue"
+      ]
+    },
+    "explain": {
+      "base_action": "talk",
+      "tags": [
+        "dialogue",
+        "gesture"
+      ],
+      "pose": {
+        "left_arm": -48,
+        "left_elbow": 28,
+        "right_arm": 54,
+        "right_elbow": -24,
+        "right_hand_spread": 0.8
+      }
+    },
+    "listen": {
+      "base_action": "idle",
+      "tags": [
+        "dialogue",
+        "reaction"
+      ],
+      "pose": {
+        "head": 5,
+        "gaze_x": -0.15,
+        "right_arm": 12,
+        "right_elbow": -28
+      }
+    },
+    "think": {
+      "base_action": "think",
+      "tags": [
+        "emotion",
+        "thinking"
+      ]
+    },
+    "shrug": {
+      "base_action": "surprised",
+      "tags": [
+        "gesture",
+        "uncertain"
+      ],
+      "pose": {
+        "left_arm": -72,
+        "right_arm": 72,
+        "left_elbow": 25,
+        "right_elbow": -25
+      }
+    },
+    "point": {
+      "base_action": "point",
+      "tags": [
+        "gesture",
+        "direction"
+      ]
+    },
+    "agree": {
+      "base_action": "wave",
+      "tags": [
+        "reaction",
+        "positive"
+      ],
+      "pose": {
+        "head": 8,
+        "right_arm": 30,
+        "right_elbow": -15
+      }
+    },
+    "disagree": {
+      "base_action": "sad",
+      "tags": [
+        "reaction",
+        "negative"
+      ],
+      "pose": {
+        "head": -18,
+        "gaze_x": -0.3
+      }
+    },
+    "laugh": {
+      "base_action": "celebrate",
+      "tags": [
+        "emotion",
+        "comedy"
+      ],
+      "pose": {
+        "head": 8,
+        "mouth": 1,
+        "emotion": 0.8
+      }
+    },
+    "celebrate": {
+      "base_action": "celebrate",
+      "tags": [
+        "emotion",
+        "positive"
+      ]
+    },
+    "sad": {
+      "base_action": "sad",
+      "tags": [
+        "emotion",
+        "negative"
+      ]
+    },
+    "surprised": {
+      "base_action": "surprised",
+      "tags": [
+        "emotion",
+        "reaction"
+      ]
+    },
+    "jump": {
+      "base_action": "jump",
+      "tags": [
+        "action",
+        "physical"
+      ]
+    },
+    "dodge": {
+      "base_action": "dodge",
+      "tags": [
+        "action",
+        "physical"
+      ]
+    },
+    "hit_react": {
+      "base_action": "impact_react",
+      "tags": [
+        "action",
+        "reaction"
+      ]
+    },
+    "kick": {
+      "base_action": "kick",
+      "tags": [
+        "action",
+        "physical"
+      ]
+    },
+    "apologize": {
+      "base_action": "sad",
+      "tags": [
+        "social",
+        "emotion"
+      ],
+      "pose": {
+        "head": -15,
+        "left_arm": -8,
+        "right_arm": 8
+      }
+    },
+    "wait": {
+      "base_action": "idle",
+      "tags": [
+        "neutral",
+        "standing"
+      ],
+      "pose": {
+        "gaze_x": 0.25
+      }
+    },
+    "sneak": {
+      "base_action": "walk",
+      "tags": [
+        "locomotion",
+        "stealth"
+      ],
+      "pose": {
+        "torso": 12,
+        "head": -8,
+        "left_arm": -12,
+        "right_arm": 12
+      }
+    },
+    "celebrate_small": {
+      "base_action": "wave",
+      "tags": [
+        "emotion",
+        "positive"
+      ],
+      "pose": {
+        "right_arm": 80,
+        "right_elbow": -35,
+        "mouth": 1
+      }
+    }
   }
 }
