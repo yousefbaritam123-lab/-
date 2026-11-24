@@ -141,23 +141,68 @@ def prepare_tahoma2d_episode(project_dir: Path, character_ids: list[str] | None 
     if not episode_path.is_file():
         raise FileNotFoundError(episode_path)
     episode = json.loads(episode_path.read_text(encoding="utf-8"))
+    actors = episode.get("characters", [])
     if character_ids is None:
         character_ids = sorted({
             str(actor.get("cast_id", actor.get("id", "")))
-            for actor in episode.get("characters", [])
+            for actor in actors
             if str(actor.get("cast_id", actor.get("id", ""))).startswith("extra_")
         })
-    if not character_ids:
-        raise ValueError("No extra_NNN cast characters found in episode.json")
+        named_ids = sorted({
+            str(actor.get("id", ""))
+            for actor in actors
+            if str(actor.get("id", "")) in {"youssef", "adam"}
+        })
+    else:
+        named_ids = []
     prepared = project_dir / "assets" / "characters" / "prepared_cast_60"
-    if not (prepared / "cast_manifest.json").is_file():
-        from .svg_character_assets import prepare_svg_cast
-        prepare_svg_cast(
-            project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg",
-            prepared,
-        )
     output_root = project_dir / "production" / "tahoma2d" / "characters"
-    return [
-        prepare_tahoma2d_character(character_id, prepared, output_root)
-        for character_id in character_ids
-    ]
+    outputs: list[Path] = []
+    if character_ids:
+        if not (prepared / "cast_manifest.json").is_file():
+            from .svg_character_assets import prepare_svg_cast
+            prepare_svg_cast(
+                project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg",
+                prepared,
+            )
+        outputs.extend(
+            prepare_tahoma2d_character(character_id, prepared, output_root)
+            for character_id in character_ids
+        )
+    if named_ids:
+        from .svg_character_assets import prepare_named_character_svg
+        for character_id in named_ids:
+            source = project_dir / "assets" / "characters" / character_id / "design_sheet.svg"
+            if not source.is_file():
+                raise FileNotFoundError(source)
+            target = output_root / character_id
+            if target.exists() and any(target.iterdir()):
+                raise FileExistsError(f"Tahoma2D output already exists: {target}")
+            target.mkdir(parents=True, exist_ok=True)
+            cropped = target / "full_character_reference.svg"
+            prepare_named_character_svg(source, cropped, character_id)
+            manifest = {
+                "schema_version": 1,
+                "engine": "Tahoma2D",
+                "character_id": character_id,
+                "source_art_preserved": True,
+                "reference_art": cropped.name,
+                "rigging_status": "reference_only_manual_layering_and_plastic_skeleton_required",
+                "known_gaps": [
+                    "This source has not yet been separated into independently moving body-part layers.",
+                    "No anatomical joint map is inferred for this named character.",
+                    "Create and save the Plastic mesh/skeleton in Tahoma2D after inspecting the source artwork.",
+                ],
+            }
+            manifest_path = target / "tahoma2d_character_manifest.json"
+            manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            (target / "TAHOMA2D_IMPORT_GUIDE.md").write_text(
+                "# Tahoma2D named-character import\n\n"
+                "Import full_character_reference.svg as a vector level. Inspect the artwork and manually create clean layers before building a Plastic mesh/skeleton. "
+                "Do not claim this reference-only package is a completed cut-out rig. Save the native scene from Tahoma2D.\n",
+                encoding="utf-8",
+            )
+            outputs.append(manifest_path)
+    if not outputs:
+        raise ValueError("No supported character IDs found in episode.json; use extra_NNN, youssef, or adam.")
+    return outputs
