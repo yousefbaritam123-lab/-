@@ -8,7 +8,13 @@ on:
       - "studio/blender_bridge.py"
       - "tools/blender_scene.py"
       - "studio/cli.py"
-      - "tests/test_blender_bridge.py"
+      - "studio/audio.py"
+      - "studio/editorial.py"
+      - "studio/script_qc.py"
+      - "studio/director.py"
+      - "studio/quality.py"
+      - "studio/production.py"
+      - "tests/**"
       - ".github/workflows/studio-blender-integration.yml"
   workflow_dispatch:
 
@@ -33,7 +39,7 @@ jobs:
           blender --version
           ffmpeg -version | head -n 1
       - name: Install Python bridge dependencies
-        run: python -m pip install --disable-pip-version-check Pillow imageio-ffmpeg
+        run: python -m pip install --disable-pip-version-check Pillow imageio-ffmpeg skia-python
       - name: Run Python tests
         run: python -m unittest discover -s tests -v
       - name: Create a two-second 2D scene
