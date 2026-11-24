@@ -39,7 +39,7 @@ def _absolute_polyline_points(path_data: str) -> list[tuple[float, float]]:
 
 
 def _split_subpaths(path_data: str) -> list[str]:
-    return [part.strip() for part in re.split(r"(?=M\s)", path_data.strip()) if part.strip()]
+    return [part.strip() for part in re.split(r"(?=M\s*[-+]?(?:\d|\.\d))", path_data.strip()) if part.strip()]
 
 
 
