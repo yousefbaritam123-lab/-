@@ -74,6 +74,16 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             self.assertIn("upper_arm_skin_R", ids)
             self.assertIn("forearm_skin_R", ids)
             self.assertFalse(rig["source_artwork_changed"])
+            self.assertEqual(rig["schema_version"], 2)
+            self.assertEqual(rig["structure_format"], "named_joint_segment_graph_v1")
+            self.assertEqual(
+                rig["structure"]["segments"]["forearm_L"],
+                {"from": "left_elbow", "to": "left_wrist"},
+            )
+            self.assertEqual(
+                rig["structure"]["points"]["head_center"],
+                {"x": 100.0, "y": 76.0},
+            )
 
     def test_real_repository_cast_extracts_all_60_with_joint_maps(self):
         repository = Path(__file__).resolve().parents[1]
