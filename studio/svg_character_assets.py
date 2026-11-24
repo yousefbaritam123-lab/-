@@ -140,7 +140,8 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                             segment_path = "M " + " L ".join(f"{x:g} {y:g}" for x, y in segment_points)
                             part = ET.Element(_tag("path"), dict(child.attrib))
                             part.set("d", segment_path)
-                            articulated_parts.append((f"{segment_name}_arm_{kind}_{side}", part))
+                            layer_name = f"{segment_name}_arm_{kind}_{side}" if segment_name == "upper" else f"forearm_{kind}_{side}"
+                            articulated_parts.append((layer_name, part))
             elif tag == "path" and child.get("fill") != "none" and child.get("stroke-width") == "4":
                 for subpath in subpaths:
                     points = _absolute_polyline_points(subpath)
