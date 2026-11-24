@@ -47,9 +47,9 @@ jobs:
       - name: Create a two-second 2D scene
         run: |
           python -m studio.cli init projects/blender-integration
-          mkdir -p projects/blender-integration/assets/characters
-          cp -R assets/characters/cast_60 projects/blender-integration/assets/characters/cast_60
-          cp -R assets/characters/youssef assets/characters/adam projects/blender-integration/assets/characters/
+          test -f projects/blender-integration/assets/characters/cast_60/contact_sheet.svg
+          test -f projects/blender-integration/assets/characters/youssef/design_sheet.svg
+          test -f projects/blender-integration/assets/characters/adam/design_sheet.svg
           python - <<'PY'
           import json
           from pathlib import Path
