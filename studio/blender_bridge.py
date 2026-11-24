@@ -16,7 +16,7 @@ def build_blender_manifest(project_dir: Path) -> Path:
     episode = json.loads(episode_path.read_text(encoding="utf-8"))
     manifest = {
         "schema_version": 2,
-        "backend": "blender_procedural_2d",
+        "backend": "blender_original_art_planes_with_legacy_fallback",
         "episode_id": episode["id"],
         "format": episode["format"],
         "locations": episode.get("locations", []),
