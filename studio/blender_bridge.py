@@ -54,15 +54,29 @@ def render_with_blender(project_dir: Path, *, blender: str = "blender",
         for actor in episode.get("characters", [])
         if str(actor.get("cast_id", actor.get("id", ""))).startswith("extra_")
     }
+    source_svg = project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg"
+    prepared = project_dir / "assets" / "characters" / "prepared_cast_60"
     if cast_ids:
-        source_svg = project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg"
-        prepared = project_dir / "assets" / "characters" / "prepared_cast_60"
         if not (prepared / "cast_manifest.json").is_file():
             from .svg_character_assets import prepare_svg_cast
             prepare_svg_cast(source_svg, prepared)
         missing = [cast_id for cast_id in sorted(cast_ids) if not (prepared / f"{cast_id}.svg").is_file()]
         if missing:
             raise RuntimeError("Prepared original SVG cast assets are missing: " + ", ".join(missing))
+    named_ids = {
+        str(actor.get("id", ""))
+        for actor in episode.get("characters", [])
+        if str(actor.get("id", "")) in {"youssef", "adam"}
+    }
+    if named_ids:
+        from .svg_character_assets import prepare_named_character_svg
+        for character_id in sorted(named_ids):
+            source = project_dir / "assets" / "characters" / character_id / "design_sheet.svg"
+            target = prepared / f"{character_id}.svg"
+            if not target.is_file():
+                if not source.is_file():
+                    raise RuntimeError(f"Original {character_id} model-sheet SVG is missing: {source}")
+                prepare_named_character_svg(source, target, character_id)
     output_root = project_dir / "renders" / "blender"
     frames_dir = output_root / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
