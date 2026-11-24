@@ -93,3 +93,14 @@ The production coordinator now contains a bounded technical repair loop:
 - Repair attempts and their outcomes are recorded in `production/production_run.json`.
 
 The latest Python CI run for commit `1110247` is pending. A previous test run exposed a faulty retry-test mock; the test was corrected to invoke the actual renderer after the simulated transient fault. Do not claim this latest repair implementation is accepted until CI completes. Artistic review and human sign-off remain separate gates.
+
+
+## Technical corrector update — 2026-11-24
+
+- Renderer retries each failed frame up to three total attempts by default, removes partial output, then verifies PNG decoding and exact configured dimensions before accepting the frame. Resume now skips only valid, correctly sized PNGs.
+- Production manager still performs a complete expected-frame audit and repairs missing, corrupt, wrong-size and near-blank frames within a bounded repair budget.
+- Final WAV validation now checks decodability, stereo, 48 kHz, 24-bit PCM, complete sample payload and duration against the episode. Invalid mixes block delivery and can be rebuilt from a valid mix plan.
+- MP4 encoding validates all source frames, encodes to a temporary file, retries once with a safer preset after an encode failure, decodes the entire MP4 and publishes it only after successful verification.
+- Added tests for transient renderer crashes, invalid PNG output, retry exhaustion, wrong WAV sample rate and wrong WAV duration.
+- Latest Python CI on commit `67547c6` passed **74 tests**. Latest 15-second pilot, art-direction benchmark and Blender integration are still running; they must finish before claiming the latest render path is verified.
+- This corrector is strict about technical defects; it does not claim autonomous artistic judgement or edit creative content without review.
