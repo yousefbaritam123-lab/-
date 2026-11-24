@@ -553,8 +553,11 @@ def main():
         actor_id = str(actor["id"])
         profile_id = actor.get("cast_id", actor_id)
         profile = catalog.get(profile_id, {})
-        svg_cast_path = Path(manifest.get("prepared_cast_path", "")) / f"{profile_id}.svg"
-        if str(profile_id).startswith("extra_") and svg_cast_path.is_file():
+        prepared_art = Path(manifest.get("prepared_cast_path", ""))
+        svg_cast_path = prepared_art / f"{profile_id}.svg"
+        if not svg_cast_path.is_file() and actor_id in {"youssef", "adam"}:
+            svg_cast_path = prepared_art / f"{actor_id}.svg"
+        if svg_cast_path.is_file():
             actors[actor_id] = build_svg_character(actor, svg_cast_path, width, height)
         else:
             actors[actor_id] = build_character(actor, profile, width, height)
