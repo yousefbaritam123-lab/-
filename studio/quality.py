@@ -1,16 +1,46 @@
-"""Automated quality gates and delivery certification."""
+"""Strict engineering and delivery gates for rendered episodes.
+
+A technically valid MP4 is not automatically an approved episode. Every expected
+frame is decoded and checked; final delivery additionally requires a real audio mix
+and an explicit human visual sign-off.
+"""
 from __future__ import annotations
+
 import json
 import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from PIL import Image
+
+from PIL import Image, ImageStat
+
 from .models import read_json, validate_episode
 from .continuity import validate_continuity
 
+
+def _read_approval(project_dir: Path, episode_id: str) -> tuple[bool, str]:
+    path = project_dir / "production" / "human_visual_approval.json"
+    if not path.is_file():
+        return False, "Human visual approval file is missing"
+    try:
+        approval = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return False, f"Human visual approval file is invalid: {exc}"
+    valid = (
+        approval.get("approved") is True
+        and approval.get("episode_id") == episode_id
+        and isinstance(approval.get("reviewer"), str)
+        and bool(approval["reviewer"].strip())
+        and isinstance(approval.get("notes"), str)
+        and bool(approval["notes"].strip())
+    )
+    return (True, "") if valid else (False, "Human visual approval does not match this episode or lacks reviewer notes")
+
+
 def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
-    errors, warnings = [], []
+    """Decode and validate every expected frame, not a sparse sample."""
+    errors: list[str] = []
+    warnings: list[str] = []
     try:
         episode = read_json(project_dir / "episode.json")
         errors.extend(validate_episode(project_dir))
@@ -18,77 +48,138 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
     except Exception as exc:
         episode = {}
         errors.append(f"Project validation error: {exc}")
+
     fmt = episode.get("format", {})
-    fps = int(fmt.get("fps", 30))
-    expected = int(round(float(fmt.get("duration_seconds", 0)) * fps))
+    try:
+        width, height = int(fmt["width"]), int(fmt["height"])
+        fps = int(fmt["fps"])
+        expected = int(round(float(fmt["duration_seconds"]) * fps))
+    except (KeyError, TypeError, ValueError):
+        width = height = fps = expected = 0
+        errors.append("Invalid or incomplete video format settings")
+
     frames_dir = project_dir / "renders" / "frames"
-    found = sorted(frames_dir.glob("frame_*.png")) if frames_dir.is_dir() else []
-    missing = [n for n in range(expected) if not (frames_dir / f"frame_{n:06d}.png").is_file()]
+    missing: list[int] = []
+    corrupt: list[str] = []
+    wrong_size: list[str] = []
+    tiny: list[str] = []
+    blank: list[str] = []
+    exact_hashes: dict[str, int] = {}
+    brightness: list[float] = []
+
     if expected <= 0:
         errors.append("Invalid expected frame count")
+    else:
+        for number in range(expected):
+            path = frames_dir / f"frame_{number:06d}.png"
+            if not path.is_file():
+                missing.append(number)
+                continue
+            try:
+                if path.stat().st_size < 128:
+                    tiny.append(path.name)
+                    continue
+                with Image.open(path) as image:
+                    image.verify()
+                with Image.open(path) as image:
+                    image = image.convert("RGB")
+                    if image.size != (width, height):
+                        wrong_size.append(f"{path.name}: {image.size}")
+                        continue
+                    stats = ImageStat.Stat(image.resize((96, 96)))
+                    mean = sum(stats.mean) / 3.0
+                    variance = sum(stats.stddev) / 3.0
+                    brightness.append(mean)
+                    if variance < 1.15 or mean < 1.0 or mean > 254.0:
+                        blank.append(path.name)
+                import hashlib
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                exact_hashes[digest] = exact_hashes.get(digest, 0) + 1
+            except Exception as exc:
+                corrupt.append(f"{path.name}: {exc}")
+
+    duplicates = sum(count - 1 for count in exact_hashes.values() if count > 1)
     if missing:
         errors.append(f"Incomplete render: {len(missing)} of {expected} frames missing")
-    tiny = [p.name for p in found if p.stat().st_size < 128]
     if tiny:
-        errors.append(f"{len(tiny)} empty or tiny frame files")
-    corrupt = []
-    stride = max(1, len(found) // max(1, sample_limit))
-    for path in found[::stride][:sample_limit]:
-        try:
-            with Image.open(path) as im:
-                im.verify()
-            with Image.open(path) as im:
-                if im.size != (fmt.get("width"), fmt.get("height")):
-                    errors.append(f"{path.name} has wrong dimensions {im.size}")
-        except Exception as exc:
-            corrupt.append(f"{path.name}: {exc}")
+        errors.append(f"{len(tiny)} frame files are empty or too small")
     if corrupt:
-        errors.append(f"{len(corrupt)} sampled frames are corrupt")
-    if found and len(found) != expected:
-        warnings.append(f"Found {len(found)} frame files; expected {expected}")
+        errors.append(f"{len(corrupt)} expected frames cannot be decoded")
+    if wrong_size:
+        errors.append(f"{len(wrong_size)} expected frames have incorrect dimensions")
+    if blank:
+        errors.append(f"{len(blank)} expected frames are blank or near-blank")
+    if duplicates:
+        warnings.append(f"{duplicates} exact duplicate frame(s) detected; review possible frozen motion")
+
     dialogue = [line for shot in episode.get("shots", []) for line in shot.get("dialogue", [])]
     dialogue_dir = project_dir / "audio" / "dialogue"
-    audio_files = list(dialogue_dir.glob("*")) if dialogue_dir.is_dir() else []
+    audio_files = [p for p in dialogue_dir.glob("*") if p.is_file()] if dialogue_dir.is_dir() else []
     has_mix = (project_dir / "audio" / "final_mix.wav").is_file()
-    if not has_mix and not audio_files:
-        warnings.append("No audio supplied; export will be silent")
-    if dialogue and not has_mix and not audio_files:
-        warnings.append("Script contains dialogue but dialogue audio is missing")
+    if not has_mix:
+        if dialogue:
+            errors.append("Script contains dialogue but audio/final_mix.wav is missing")
+        else:
+            warnings.append("No final audio mix supplied; delivery will be blocked until one is added")
+
+    approval_ok, approval_message = _read_approval(project_dir, str(episode.get("id", "")))
+    if not approval_ok:
+        warnings.append(approval_message + "; delivery is not approved")
+
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "episode_id": episode.get("id", project_dir.name),
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "status": "failed" if errors else ("passed_with_warnings" if warnings else "passed"),
-        "delivery_eligible": not errors,
-        "summary": {"expected_frames": expected, "found_frames": len(found),
-                    "missing_frames": len(missing), "corrupt_sampled_frames": len(corrupt),
-                    "errors": len(errors), "warnings": len(warnings)},
-        "errors": errors, "warnings": warnings,
-        "checks": {"episode_and_continuity": "passed" if not errors else "review",
-                   "frame_coverage": "passed" if expected and not missing and not tiny else "failed",
-                   "sampled_image_integrity": "passed" if found and not corrupt else "failed",
-                   "audio": "present" if has_mix or audio_files else "missing"}
+        "delivery_eligible": not errors and has_mix and approval_ok,
+        "summary": {
+            "expected_frames": expected,
+            "verified_frames": expected - len(missing) - len(tiny) - len(corrupt) - len(wrong_size) - len(blank),
+            "missing_frames": len(missing),
+            "tiny_frames": len(tiny),
+            "corrupt_frames": len(corrupt),
+            "wrong_dimension_frames": len(wrong_size),
+            "blank_frames": len(blank),
+            "exact_duplicate_frames": duplicates,
+            "errors": len(errors),
+            "warnings": len(warnings),
+        },
+        "errors": errors,
+        "warnings": warnings,
+        "checks": {
+            "episode_and_continuity": "passed" if not errors else "review",
+            "all_frame_integrity": "passed" if expected and not (missing or tiny or corrupt or wrong_size or blank) else "failed",
+            "audio": "present" if has_mix else "missing",
+            "human_visual_approval": "approved" if approval_ok else "missing_or_invalid",
+        },
     }
     out = project_dir / "production" / "quality_report.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
 
+
 def certify_delivery(project_dir: Path) -> Path:
+    """Encode only after every frame, audio, and human-review gate passes."""
     report = audit_episode(project_dir)
     if not report["delivery_eligible"]:
-        raise RuntimeError("Delivery blocked. Review production/quality_report.json")
+        reasons = report["errors"] + report["warnings"]
+        raise RuntimeError("Delivery blocked: " + "; ".join(reasons))
     from .media import encode_video
+
     episode = read_json(project_dir / "episode.json")
     output = encode_video(project_dir, int(episode["format"]["fps"]))
     if not output.is_file() or output.stat().st_size < 1024:
         raise RuntimeError("Encoded video missing or unexpectedly small")
+
     verification = "encoded file exists; ffprobe unavailable"
     ffprobe = shutil.which("ffprobe")
     if ffprobe:
-        result = subprocess.run([ffprobe, "-v", "error", "-show_entries",
-            "format=duration:stream=codec_name,width,height", "-of", "json", str(output)],
-            capture_output=True, text=True)
+        result = subprocess.run(
+            [ffprobe, "-v", "error", "-show_entries",
+             "format=duration:stream=codec_name,width,height", "-of", "json", str(output)],
+            capture_output=True, text=True,
+        )
         if result.returncode:
             raise RuntimeError("MP4 verification failed: " + result.stderr[-1000:])
         data = json.loads(result.stdout)
@@ -103,10 +194,17 @@ def certify_delivery(project_dir: Path) -> Path:
         if abs(actual - expected) > 0.15:
             raise RuntimeError(f"Video duration mismatch: {actual:.3f}s vs {expected:.3f}s")
         verification = "H.264, dimensions and duration verified"
-    manifest = {"episode_id": episode["id"], "status": "delivered",
+
+    manifest = {
+        "episode_id": episode["id"],
+        "status": "delivered",
         "delivered_at": datetime.now(timezone.utc).isoformat(),
-        "video": str(output.relative_to(project_dir)), "bytes": output.stat().st_size,
-        "quality_report": "production/quality_report.json", "verification": verification}
+        "video": str(output.relative_to(project_dir)),
+        "bytes": output.stat().st_size,
+        "quality_report": "production/quality_report.json",
+        "verification": verification,
+        "human_visual_approval": "production/human_visual_approval.json",
+    }
     path = project_dir / "production" / "delivery_manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return output
