@@ -27,6 +27,9 @@ class StudioProjectTests(unittest.TestCase):
             self.assertTrue((project / "assets/characters/adam/design_sheet.svg").is_file())
             self.assertTrue((project / "assets/motions/motion_library.json").is_file())
             self.assertTrue((project / "assets/locations/algerian_neighborhood/location.json").is_file())
+            self.assertTrue((project / "production/audio_mix.template.json").is_file())
+            self.assertTrue((project / "audio/music").is_dir())
+            self.assertTrue((project / "subtitles").is_dir())
 
     def test_duplicate_character_ids_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
