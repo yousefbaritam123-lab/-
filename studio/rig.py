@@ -121,6 +121,12 @@ def _ease(t: float) -> float:
 
 
 def sample_motion(action: str, time_s: float, library: dict[str, Any] | None = None) -> dict[str, float]:
+    """Sample a deterministic pose, interpolating across loop boundaries.
+
+    The cyclic last-to-first interpolation follows a common skeletal-animation
+    pattern also documented by the MIT-licensed Skele2D project; this function
+    is an independent implementation for our Python rig runtime.
+    """
     clips = (library or {}).get("clips", {})
     clip = clips.get(action) or DEFAULT_CLIPS.get(action) or DEFAULT_CLIPS["idle"]
     duration = max(float(clip.get("duration", 1.0)), 0.001)
@@ -128,20 +134,44 @@ def sample_motion(action: str, time_s: float, library: dict[str, Any] | None = N
     phase = (time_s % duration) / duration if loop else min(max(time_s / duration, 0.0), 1.0)
     frames = clip.get("keyframes") or DEFAULT_CLIPS.get(action, DEFAULT_CLIPS["idle"])["keyframes"]
     frames = sorted(frames, key=lambda item: float(item["at"]))
-    if phase <= float(frames[0]["at"]):
+    if not frames:
+        frames = DEFAULT_CLIPS["idle"]["keyframes"]
+
+    left = right = frames[0]
+    local = 0.0
+    first_at = float(frames[0]["at"])
+    last_at = float(frames[-1]["at"])
+
+    if loop and len(frames) > 1 and (first_at > 0.0 or last_at < 1.0):
+        # Bridge the final keyframe to the first keyframe through the loop seam.
+        if phase < first_at:
+            left, right = frames[-1], frames[0]
+            wrapped_phase = phase + 1.0
+            span = max(first_at + 1.0 - last_at, 1e-9)
+            local = _ease(_clamp((wrapped_phase - last_at) / span, 0.0, 1.0))
+        elif phase > last_at:
+            left, right = frames[-1], frames[0]
+            span = max(first_at + 1.0 - last_at, 1e-9)
+            local = _ease(_clamp((phase - last_at) / span, 0.0, 1.0))
+        else:
+            for a, b in zip(frames, frames[1:]):
+                if float(a["at"]) <= phase <= float(b["at"]):
+                    left, right = a, b
+                    span = max(float(right["at"]) - float(left["at"]), 1e-9)
+                    local = _ease((phase - float(left["at"])) / span)
+                    break
+    elif phase <= first_at:
         left = right = frames[0]
-        local = 0.0
-    elif phase >= float(frames[-1]["at"]):
+    elif phase >= last_at:
         left = right = frames[-1]
-        local = 0.0
     else:
-        left, right = frames[0], frames[-1]
         for a, b in zip(frames, frames[1:]):
             if float(a["at"]) <= phase <= float(b["at"]):
                 left, right = a, b
+                span = max(float(right["at"]) - float(left["at"]), 1e-9)
+                local = _ease((phase - float(left["at"])) / span)
                 break
-        span = max(float(right["at"]) - float(left["at"]), 1e-9)
-        local = _ease((phase - float(left["at"])) / span)
+
     lp, rp = left.get("pose", {}), right.get("pose", {})
     neutral = {"left_arm": -22.0, "right_arm": 22.0, "left_leg": -5.0, "right_leg": 5.0}
     result = {key: neutral.get(key, 0.0) for key in POSE_KEYS}
