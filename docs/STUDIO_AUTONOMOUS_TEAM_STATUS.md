@@ -11,7 +11,7 @@ This status distinguishes working software from planned departments. A library b
 | Character art | 60 catalog appearance/proportion profiles, canonical character sheets and Blender procedural puppets | Hand-authored unique designs, layered assets and richer environments |
 | Animation | Shared rig, IK primitive in Python, 25 motion presets, timed tracks; Blender cyclic walk/run/wave, facial drawings and Rhubarb cue switching | Full IK/retargeting in Blender, contact/foot planting, hand poses, nuanced acting and transition polish |
 | Camera and staging | Skia and Blender shot zoom/pan, actor positions and movement tracks | Lens language, multi-plane parallax and advanced camera choreography |
-| Audio | Timed clip mixer, dialogue/music/effects buses, dialogue-driven music ducking, loudness and peak limiting | Voice generation/recording workflow, detailed sound design and human mix approval |
+| Audio | Optional Piper local TTS adapter, timed clip mixer, dialogue/music/effects buses, dialogue-driven music ducking, loudness and peak limiting | Arabic voice model selection and dialect testing, detailed sound design and human mix approval |
 | Lip sync | Rhubarb adapter maps recorded audio cues to visemes; Blender and Skia can consume cue data | Better phoneme mapping, face deformation and automatic cue quality review |
 | Editing and subtitles | SRT export, exact frame edit plan, optional OpenTimelineIO timeline, FFmpeg H.264/AAC output | Full multi-track NLE project, transitions, subtitle burn-in and final human editorial pass |
 | Technical QA | Full-frame decode/dimension/blank checks, audio gate, script QA, repair rounds and delivery manifest | Motion/scene semantic QA and reliable automated artistic evaluation |
