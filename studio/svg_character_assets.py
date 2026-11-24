@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
+
+from .skeletal_graph import SkeletonGraph
 from pathlib import Path
 from typing import Any
 
@@ -255,23 +257,27 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                     joints["right_ankle"] = [sum(p[0] for p in right_bottom) / len(right_bottom), sum(p[1] for p in right_bottom) / len(right_bottom)]
                 joints["pelvis"] = [(joints["left_hip"][0] + joints["right_hip"][0]) * 0.5, (joints["left_hip"][1] + joints["right_hip"][1]) * 0.5]
             break
+        bone_definitions = [
+            {"name": "head", "parent": "neck", "child": "head_center"},
+            {"name": "torso", "parent": "neck", "child": "pelvis"},
+            {"name": "upper_arm_L", "parent": "left_shoulder", "child": "left_elbow"},
+            {"name": "forearm_L", "parent": "left_elbow", "child": "left_wrist"},
+            {"name": "upper_arm_R", "parent": "right_shoulder", "child": "right_elbow"},
+            {"name": "forearm_R", "parent": "right_elbow", "child": "right_wrist"},
+            {"name": "thigh_L", "parent": "left_hip", "child": "left_knee"},
+            {"name": "shin_L", "parent": "left_knee", "child": "left_ankle"},
+            {"name": "thigh_R", "parent": "right_hip", "child": "right_knee"},
+            {"name": "shin_R", "parent": "right_knee", "child": "right_ankle"},
+        ]
+        skeleton_graph = SkeletonGraph.from_rig(joints, bone_definitions)
         rig = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "structure_format": "named_joint_segment_graph_v1",
+            "structure": skeleton_graph.to_dict(),
             "character_id": character_id,
             "coordinate_space": "character_cell_200x220",
             "joints": joints,
-            "bones": [
-                {"name": "head", "parent": "neck", "child": "head_center"},
-                {"name": "torso", "parent": "neck", "child": "pelvis"},
-                {"name": "upper_arm_L", "parent": "left_shoulder", "child": "left_elbow"},
-                {"name": "forearm_L", "parent": "left_elbow", "child": "left_wrist"},
-                {"name": "upper_arm_R", "parent": "right_shoulder", "child": "right_elbow"},
-                {"name": "forearm_R", "parent": "right_elbow", "child": "right_wrist"},
-                {"name": "thigh_L", "parent": "left_hip", "child": "left_knee"},
-                {"name": "shin_L", "parent": "left_knee", "child": "left_ankle"},
-                {"name": "thigh_R", "parent": "right_hip", "child": "right_knee"},
-                {"name": "shin_R", "parent": "right_knee", "child": "right_ankle"},
-            ],
+            "bones": bone_definitions,
             "articulation_status": {
                 "arms": "upper_arm_and_forearm_outline_and_skin_segments_extracted_from_original_paths",
                 "legs": "source_lower_body_outline_preserved; joint_landmarks_derived_but_leg_meshes_not_split",
