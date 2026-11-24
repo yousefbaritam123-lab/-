@@ -2,9 +2,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from PIL import Image
+
 from studio.cli import init_project
 from studio.quality import audit_episode, certify_delivery
+
 
 class QualityGateTests(unittest.TestCase):
     def project(self, root):
@@ -12,11 +15,26 @@ class QualityGateTests(unittest.TestCase):
         init_project(p)
         path = p / "episode.json"
         doc = json.loads(path.read_text(encoding="utf-8"))
-        doc["format"]["duration_seconds"] = 1
+        doc["format"].update({"width": 240, "height": 426, "fps": 30, "duration_seconds": 1})
         doc["shots"] = [{"id":"shot-001","duration_seconds":1,"location":"street_01",
                          "actors":["youssef"],"action":"idle","dialogue":[]}]
         path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
         return p
+
+    def frames(self, project):
+        folder = project / "renders" / "frames"
+        folder.mkdir(parents=True)
+        for n in range(30):
+            image = Image.new("RGB", (240, 426), (30+n, 70, 110))
+            image.save(folder / f"frame_{n:06d}.png")
+
+    def approve_and_add_audio(self, project):
+        episode = json.loads((project / "episode.json").read_text(encoding="utf-8"))
+        (project / "audio" / "final_mix.wav").write_bytes(b"test-audio")
+        approval = {"episode_id":episode["id"],"approved":True,
+                    "reviewer":"QA reviewer","notes":"Watched full video and reviewed frames."}
+        (project / "production" / "human_visual_approval.json").write_text(
+            json.dumps(approval), encoding="utf-8")
 
     def test_missing_frames_block_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -24,21 +42,36 @@ class QualityGateTests(unittest.TestCase):
             self.assertFalse(report["delivery_eligible"])
             self.assertTrue(any("Incomplete render" in e for e in report["errors"]))
 
-    def test_complete_frames_pass_audit(self):
+    def test_every_frame_is_checked_not_only_sparse_sample(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = self.project(tmp)
-            folder = p / "renders" / "frames"
-            folder.mkdir(parents=True)
-            for n in range(30):
-                Image.new("RGB", (1080,1920), (30+n,70,110)).save(folder / f"frame_{n:06d}.png")
+            self.frames(p)
+            Image.new("RGB", (10, 10), (1, 2, 3)).save(p / "renders/frames/frame_000017.png")
             report = audit_episode(p)
-            self.assertTrue(report["delivery_eligible"], report["errors"])
-            self.assertEqual(report["summary"]["found_frames"], 30)
+            self.assertTrue(any("incorrect dimensions" in e for e in report["errors"]))
 
-    def test_finalize_refuses_incomplete_render(self):
+    def test_delivery_requires_audio_and_human_approval(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(RuntimeError):
-                certify_delivery(self.project(tmp))
+            p = self.project(tmp)
+            self.frames(p)
+            with self.assertRaisesRegex(RuntimeError, "Delivery blocked"):
+                certify_delivery(p)
+
+    def test_complete_reviewed_project_can_be_certified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.project(tmp)
+            self.frames(p)
+            self.approve_and_add_audio(p)
+            output = p / "renders" / "episode.mp4"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            with patch("studio.media.encode_video", return_value=output):
+                output.write_bytes(b"x" * 2048)
+                with patch("studio.quality.shutil.which", return_value=None):
+                    result = certify_delivery(p)
+            self.assertEqual(result, output)
+            manifest = json.loads((p / "production/delivery_manifest.json").read_text())
+            self.assertEqual(manifest["status"], "delivered")
+
 
 if __name__ == "__main__":
     unittest.main()
