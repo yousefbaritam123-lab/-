@@ -39,13 +39,60 @@ jobs:
         run: python -m studio.cli validate projects/pilot-15s
       - name: Render 450 frames (15 seconds at 30 fps)
         run: python -m studio.cli render projects/pilot-15s --resume
-      - name: Encode MP4 and verify duration
+      - name: Audit all 450 frames and encode technical animatic
         run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          frames = Path("projects/pilot-15s/renders/frames")
+          errors, verified = [], 0
+          for number in range(450):
+              path = frames / f"frame_{number:06d}.png"
+              if not path.is_file() or path.stat().st_size < 256:
+                  errors.append(f"missing_or_tiny:{number}")
+                  continue
+              try:
+                  with Image.open(path) as image:
+                      image.verify()
+                  with Image.open(path) as image:
+                      image = image.convert("RGB")
+                      if image.size != (540, 960):
+                          errors.append(f"wrong_dimensions:{number}:{image.size}")
+                          continue
+                      variance = sum(ImageStat.Stat(image.resize((96, 96))).stddev) / 3
+                      if variance < 1.15:
+                          errors.append(f"blank:{number}")
+                          continue
+              except Exception as exc:
+                  errors.append(f"corrupt:{number}:{exc}")
+                  continue
+              verified += 1
+          report = {
+              "mode": "technical_animatic_not_final_episode",
+              "expected_frames": 450,
+              "verified_frames": verified,
+              "errors": errors,
+              "resolution": "540x960_preview",
+              "fps": 30,
+              "audio": "not included in this pilot",
+              "human_art_review": "required",
+              "native_tahoma2d_scene": "not yet authored",
+          }
+          out = Path("projects/pilot-15s/production/pilot_frame_audit.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if errors or verified != 450:
+              raise SystemExit("Pilot frame audit failed")
+          PY
           python -m studio.cli encode projects/pilot-15s
-          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 projects/pilot-15s/renders/episode.mp4
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration,size -of json projects/pilot-15s/renders/episode.mp4
       - uses: actions/upload-artifact@v4
         with:
           name: youssef-studio-pilot-15s
-          path: projects/pilot-15s/renders/episode.mp4
+          path: |
+            projects/pilot-15s/renders/episode.mp4
+            projects/pilot-15s/production/pilot_frame_audit.json
           if-no-files-found: error
           retention-days: 14
