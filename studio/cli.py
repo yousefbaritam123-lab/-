@@ -101,7 +101,7 @@ def doctor() -> int:
         "pnpm": shutil.which("pnpm") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
         "Piper (optional local TTS)": shutil.which("piper") is not None,
-        "Tahoma2D (optional vector animation editor)": _tahoma2d_available(),\n        "Blender (legacy optional backend)": shutil.which("blender") is not None,
+        "Tahoma2D batch renderer": shutil.which("tcomposer") is not None,\n        "Tahoma2D desktop app": shutil.which("tahoma2d") is not None,\n        "Blender (legacy optional backend)": shutil.which("blender") is not None,
         "OpenTimelineIO (optional editorial)": _module_available("opentimelineio"),
         "OpenCV (optional vision)": _module_available("cv2"),
     }
@@ -208,7 +208,16 @@ def main(argv: list[str] | None = None) -> int:
     interpolate_cmd.add_argument("--fps", type=int, required=True, help="target FPS; e.g. 60 from a 30 FPS source")
     interpolate_cmd.add_argument("--source", type=Path, help="source MP4; default renders/episode.mp4")
     interpolate_cmd.add_argument("--output", type=Path, help="output MP4; default renders/<source>-<fps>fps.mp4")
-    tahoma_cmd = sub.add_parser("tahoma2d-prepare", help="export episode character vector layers for Tahoma2D Plastic rigging")\n    tahoma_cmd.add_argument("project", type=Path)\n    tahoma_cmd.add_argument("--character", action="append", dest="characters", help="cast ID such as extra_001; repeat to export more than one")\n    blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with the legacy optional Blender backend")
+    tahoma_cmd = sub.add_parser("tahoma2d-prepare", help="export episode character vector layers for Tahoma2D Plastic rigging")\n    tahoma_cmd.add_argument("project", type=Path)\n    tahoma_cmd.add_argument("--character", action="append", dest="characters", help="cast ID such as extra_001; repeat to export more than one")\n    tahoma_render_cmd = sub.add_parser("tahoma2d-render", help="render an authored native Tahoma2D .tnz scene through tcomposer")
+    tahoma_render_cmd.add_argument("scene", type=Path)
+    tahoma_render_cmd.add_argument("output", type=Path)
+    tahoma_render_cmd.add_argument("--tcomposer")
+    tahoma_render_cmd.add_argument("--start-frame", type=int, default=1)
+    tahoma_render_cmd.add_argument("--end-frame", type=int)
+    tahoma_render_cmd.add_argument("--step", type=int, default=1)
+    tahoma_render_cmd.add_argument("--threads", type=int)
+    tahoma_render_cmd.add_argument("--timeout", type=int)
+    blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with the legacy optional Blender backend")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
     moviepy_cmd = sub.add_parser("moviepy-compose", help="compose rendered shots with optional MoviePy transitions and audio")
@@ -374,6 +383,15 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(f"Interpolated video created: {output}")
         print("Note: interpolation improves temporal smoothness only; it does not repair source animation.")
+        return 0
+    if args.command == "tahoma2d-render":
+        from .tahoma2d_runtime import render_tahoma2d_scene
+        try:
+            output = render_tahoma2d_scene(args.scene, args.output, executable=args.tcomposer, start_frame=args.start_frame, end_frame=args.end_frame, step=args.step, threads=args.threads, timeout=args.timeout)
+        except Exception as exc:
+            print("TAHOMA2D RENDER FAILED: " + str(exc))
+            return 1
+        print(f"Tahoma2D scene rendered: {output}")
         return 0
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
