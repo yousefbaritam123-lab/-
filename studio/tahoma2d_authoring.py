@@ -22,7 +22,7 @@ def prepare_scene_levels(project_dir: Path, output_dir: Path, *, width: int = 10
     except ImportError as exc:
         raise RuntimeError("Install CairoSVG and Pillow to prepare Tahoma2D scene levels") from exc
 
-    placements = {"youssef": (300, 110), "adam": (1200, 110)}
+    placements = {"youssef": (100, 350), "adam": (600, 350)}
     levels: list[Path] = []
     for character, (x, y) in placements.items():
         reference = project / "production" / "tahoma2d" / "characters" / character / "full_character_reference.svg"
