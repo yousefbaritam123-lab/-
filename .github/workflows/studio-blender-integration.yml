@@ -1,0 +1,85 @@
+name: Blender engine integration
+
+on:
+  push:
+    branches:
+      - studio-pro-foundation
+    paths:
+      - "studio/blender_bridge.py"
+      - "tools/blender_scene.py"
+      - "studio/cli.py"
+      - "tests/test_blender_bridge.py"
+      - ".github/workflows/studio-blender-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  blender-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: studio-pro-foundation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender ffmpeg
+          blender --version
+          ffmpeg -version | head -n 1
+      - name: Install Python bridge dependencies
+        run: python -m pip install --disable-pip-version-check Pillow imageio-ffmpeg
+      - name: Run Python tests
+        run: python -m unittest discover -s tests -v
+      - name: Create a two-second 2D scene
+        run: |
+          python -m studio.cli init projects/blender-integration
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("projects/blender-integration")
+          path = root / "episode.json"
+          episode = json.loads(path.read_text(encoding="utf-8"))
+          episode["id"] = "blender-integration-smoke"
+          episode["title"] = "Blender 2D render integration"
+          episode["format"] = {"width": 360, "height": 640, "fps": 30, "duration_seconds": 2}
+          episode["shots"] = [{
+              "id": "smoke-shot",
+              "duration_seconds": 2,
+              "location": "street_01",
+              "actors": ["youssef", "adam"],
+              "action": "wave",
+              "positions": {"youssef": {"x": 125, "y": 500}, "adam": {"x": 245, "y": 500}},
+              "motion_tracks": {
+                  "youssef": [{"start": 0, "end": 2, "action": "wave"}],
+                  "adam": [{"start": 0, "end": 2, "action": "listen"}]
+              },
+              "dialogue": []
+          }]
+          path.write_text(json.dumps(episode, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+      - name: Validate and render with Blender
+        run: |
+          python -m studio.cli validate projects/blender-integration
+          python -m studio.cli blender-render projects/blender-integration --blender blender
+      - name: Verify frame sequence and MP4 metadata
+        run: |
+          test "$(find projects/blender-integration/renders/blender/frames -name 'frame_*.png' | wc -l)" -eq 60
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json projects/blender-integration/renders/blender/episode-blender.mp4
+          cat projects/blender-integration/renders/blender/render_integrity.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blender-engine-smoke-test
+          path: |
+            projects/blender-integration/renders/blender/episode-blender.mp4
+            projects/blender-integration/renders/blender/render_integrity.json
+            projects/blender-integration/renders/blender/frames/frame_000001.png
+            projects/blender-integration/renders/blender/frames/frame_000030.png
+            projects/blender-integration/renders/blender/frames/frame_000060.png
+          if-no-files-found: error
+          retention-days: 14
