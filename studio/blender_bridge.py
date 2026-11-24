@@ -33,6 +33,29 @@ def build_blender_manifest(project_dir: Path) -> Path:
     return target
 
 
+
+def _rasterize_character_svg(svg_path: Path) -> Path:
+    """Rasterize the original vector art with alpha so no SVG strokes are lost."""
+    try:
+        import cairosvg
+    except ImportError as exc:
+        raise RuntimeError("Install CairoSVG for original-art Blender rendering: pip install CairoSVG") from exc
+    svg_path = Path(svg_path)
+    root = __import__("xml.etree.ElementTree", fromlist=["ElementTree"]).parse(svg_path).getroot()
+    view_box = [float(value) for value in root.get("viewBox", "0 0 200 220").replace(",", " ").split()]
+    if len(view_box) != 4 or view_box[2] <= 0 or view_box[3] <= 0:
+        raise ValueError(f"Invalid SVG viewBox in {svg_path}")
+    png_path = svg_path.with_suffix(".png")
+    cairosvg.svg2png(
+        url=str(svg_path), write_to=str(png_path),
+        output_width=int(round(view_box[2] * 3)),
+        output_height=int(round(view_box[3] * 3)),
+    )
+    if not png_path.is_file() or png_path.stat().st_size < 256:
+        raise RuntimeError(f"Original SVG rasterization produced no usable PNG: {svg_path}")
+    return png_path
+
+
 def _resolve_binary(binary: str) -> str:
     resolved = str(Path(binary).resolve()) if Path(binary).is_file() else shutil.which(binary)
     if not resolved:
@@ -77,6 +100,9 @@ def render_with_blender(project_dir: Path, *, blender: str = "blender",
                 if not source.is_file():
                     raise RuntimeError(f"Original {character_id} model-sheet SVG is missing: {source}")
                 prepare_named_character_svg(source, target, character_id)
+    raster_ids = set(cast_ids) | set(named_ids)
+    for character_id in sorted(raster_ids):
+        _rasterize_character_svg(prepared / f"{character_id}.svg")
     output_root = project_dir / "renders" / "blender"
     frames_dir = output_root / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
