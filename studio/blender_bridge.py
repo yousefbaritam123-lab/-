@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +42,7 @@ def _rasterize_character_svg(svg_path: Path) -> Path:
     except ImportError as exc:
         raise RuntimeError("Install CairoSVG for original-art Blender rendering: pip install CairoSVG") from exc
     svg_path = Path(svg_path)
-    root = __import__("xml.etree.ElementTree", fromlist=["ElementTree"]).parse(svg_path).getroot()
+    root = ET.parse(svg_path).getroot()
     view_box = [float(value) for value in root.get("viewBox", "0 0 200 220").replace(",", " ").split()]
     if len(view_box) != 4 or view_box[2] <= 0 or view_box[3] <= 0:
         raise ValueError(f"Invalid SVG viewBox in {svg_path}")
