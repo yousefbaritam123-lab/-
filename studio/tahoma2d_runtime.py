@@ -46,6 +46,23 @@ def _tahoma_environment(executable: str) -> dict[str, str]:
     }
     for key, path in folders.items():
         env.setdefault(key, str(path))
+
+    # Linux packages rely on SystemVar.ini to locate the shared Tahoma stuff tree.
+    # Preserve any existing user configuration; create only when it is absent.
+    if os.name == "posix":
+        config_home = Path(env.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+        system_var = config_home / "Tahoma2D" / "SystemVar.ini"
+        if not system_var.exists():
+            system_var.parent.mkdir(parents=True, exist_ok=True)
+            keys = (
+                "TAHOMA2DROOT", "TAHOMA2DPROFILES", "TAHOMA2DCONFIG",
+                "TAHOMA2DFXPRESETS", "TAHOMA2DLIBRARY", "TAHOMA2DPROJECTS",
+                "TAHOMA2DSTUDIOPALETTE", "TAHOMA2DCACHEROOT",
+            )
+            lines = ["[General]"] + [
+                f'{key}="{env[key]}"' for key in keys if env.get(key)
+            ]
+            system_var.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
     return env
 
 
