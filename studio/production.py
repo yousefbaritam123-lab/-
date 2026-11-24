@@ -157,16 +157,41 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
 
     dialogue = [line for shot in episode.get("shots", []) for line in shot.get("dialogue", [])]
     final_mix = project_dir / "audio" / "final_mix.wav"
-    if not final_mix.is_file():
-        hard_errors.append(
-            "Dialogue exists in the script but audio/final_mix.wav is missing"
-            if dialogue else "Final audio mix is missing"
-        )
+    audio_repair: dict[str, Any] = {"attempted": False, "status": "not_needed"}
+    audio_ok = False
+    if final_mix.is_file():
+        audio_ok, audio_error = inspect_audio_mix(final_mix, float(fmt["duration_seconds"]))
     else:
-        audio_ok, audio_error = inspect_audio_mix(
-            final_mix, float(fmt["duration_seconds"])
-        )
-        if not audio_ok:
+        audio_error = "Final audio mix is missing"
+    if not audio_ok:
+        # If a valid edit plan exists, rebuild the mix automatically rather than
+        # delivering a broken WAV or immediately stopping the whole production.
+        configs = [
+            project_dir / "production" / "audio_mix.generated.json",
+            project_dir / "production" / "audio_mix.json",
+        ]
+        for config_path in configs:
+            if not config_path.is_file():
+                continue
+            audio_repair = {"attempted": True, "config": str(config_path.relative_to(project_dir))}
+            try:
+                from .audio import mix_episode_audio
+                mix_episode_audio(project_dir, config_path=config_path)
+                audio_ok, audio_error = inspect_audio_mix(
+                    final_mix, float(fmt["duration_seconds"])
+                )
+                if audio_ok:
+                    audio_repair["status"] = "repaired"
+                    break
+                audio_repair["status"] = "failed"
+                audio_repair["error"] = audio_error
+            except Exception as exc:
+                audio_repair["status"] = "failed"
+                audio_repair["error"] = f"{type(exc).__name__}: {exc}"
+    if not audio_ok:
+        if dialogue and audio_error == "Final audio mix is missing":
+            hard_errors.append("Dialogue exists in the script but audio/final_mix.wav is missing")
+        else:
             hard_errors.append(audio_error)
 
     # A deterministic engine cannot judge acting, anatomy, continuity aesthetics,
