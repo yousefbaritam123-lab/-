@@ -6,7 +6,9 @@ on:
     paths:
       - "studio/tahoma2d_*.py"
       - "studio/cli.py"
+      - "studio/svg_character_assets.py"
       - "tests/test_tahoma2d_*.py"
+      - "tests/test_svg_character_assets.py"
       - ".github/workflows/studio-tahoma2d-engine.yml"
 permissions:
   contents: read
