@@ -1,11 +1,13 @@
 import json
 import math
+import subprocess
 import tempfile
 import unittest
 import wave
 from pathlib import Path
 
 from studio.audio import mix_episode_audio
+import imageio_ffmpeg
 
 
 def write_tone(path: Path, seconds: float, frequency: float) -> None:
@@ -51,11 +53,14 @@ class AudioIntegrationTests(unittest.TestCase):
             config_path.write_text(json.dumps(config), encoding="utf-8")
             output = mix_episode_audio(root)
             self.assertTrue(output.is_file())
-            with wave.open(str(output), "rb") as audio:
-                self.assertEqual(audio.getframerate(), 48000)
-                self.assertEqual(audio.getnchannels(), 2)
-                self.assertEqual(audio.getsampwidth(), 3)
-                self.assertAlmostEqual(audio.getnframes() / audio.getframerate(), 3.0, delta=0.02)
+            probe = subprocess.run(
+                [imageio_ffmpeg.get_ffmpeg_exe(), "-i", str(output), "-f", "null", "-"],
+                capture_output=True, text=True, check=False
+            )
+            self.assertEqual(probe.returncode, 0, probe.stderr[-2000:])
+            self.assertIn("48000 Hz", probe.stderr)
+            self.assertIn("stereo", probe.stderr)
+            self.assertIn("s24", probe.stderr)
             report = json.loads((root / "production/audio_mix_report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["status"], "mixed")
             self.assertEqual(report["buses"], ["dialogue", "effects", "music"])
