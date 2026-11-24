@@ -5,7 +5,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from studio.svg_character_assets import SVG_NS, prepare_svg_cast
-from studio.tahoma2d_bridge import prepare_tahoma2d_character
+from studio.tahoma2d_bridge import prepare_tahoma2d_character, prepare_tahoma2d_episode
+from studio.cli import init_project
 
 
 class Tahoma2DBridgeTests(unittest.TestCase):
@@ -39,3 +40,16 @@ class Tahoma2DBridgeTests(unittest.TestCase):
                 self.assertEqual(layer_root.get("data-character-id"), "extra_001")
             self.assertTrue((manifest_path.parent / "full_character_reference.svg").is_file())
             self.assertIn("does not fabricate", (manifest_path.parent / "TAHOMA2D_IMPORT_GUIDE.md").read_text())
+
+    def test_explicit_named_cast_ids_use_named_original_artwork(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            outputs = prepare_tahoma2d_episode(project, ["youssef", "adam"])
+            self.assertEqual(len(outputs), 2)
+            for character in ("youssef", "adam"):
+                folder = project / "production" / "tahoma2d" / "characters" / character
+                manifest = json.loads((folder / "tahoma2d_character_manifest.json").read_text(encoding="utf-8"))
+                self.assertTrue(manifest["source_art_preserved"])
+                self.assertTrue((folder / manifest["reference_art"]).is_file())
+                self.assertGreaterEqual(manifest["layer_count"], 8)
