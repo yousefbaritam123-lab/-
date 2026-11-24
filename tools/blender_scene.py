@@ -318,7 +318,7 @@ def build_character(actor, profile, width, height):
     mouths = {"REST": mouth_rest, "CLOSED": mouth_closed, "SMILE": mouth_smile,
               "FROWN": mouth_frown, "E": mouth_e, "I": mouth_i,
               "A": mouth_a, "O": mouth_o, "U": mouth_u}
-    for mouth in set(mouths.values()):
+    for mouth in {item.name: item for item in mouths.values()}.values():
         mouth.hide_render = True
         mouth.keyframe_insert(data_path="hide_render", frame=1)
     mouth_rest.hide_render = False
