@@ -38,10 +38,24 @@ TEMPLATE = {
     ]
 }
 
+AUDIO_MIX_TEMPLATE = {
+    "tracks": [
+        {"name": "dialogue", "gain_db": 0, "clips": [
+            {"file": "audio/dialogue/replace-with-recording.wav", "start_seconds": 2.0, "end_seconds": 4.0, "gain_db": 0}
+        ]},
+        {"name": "music", "gain_db": -12, "clips": [
+            {"file": "audio/music/replace-with-licensed-score.wav", "start_seconds": 0, "end_seconds": 100}
+        ]},
+        {"name": "effects", "gain_db": -4, "clips": [
+            {"file": "audio/fx/replace-with-effect.wav", "start_seconds": 16, "end_seconds": 18}
+        ]}
+    ]
+}
+
 
 def init_project(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    for folder in ("assets/characters", "assets/locations", "audio/dialogue", "audio/fx", "renders", "production", "continuity"):
+    for folder in ("assets/characters", "assets/locations", "audio/dialogue", "audio/music", "audio/ambience", "audio/fx", "renders", "production", "continuity", "subtitles"):
         (path / folder).mkdir(parents=True, exist_ok=True)
     bundled_assets = Path(__file__).resolve().parent.parent / "assets"
     if bundled_assets.is_dir():
@@ -49,6 +63,9 @@ def init_project(path: Path) -> None:
     episode_file = path / "episode.json"
     if not episode_file.exists():
         episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    mix_template = path / "production" / "audio_mix.template.json"
+    if not mix_template.exists():
+        mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
     continuity_file = path / "continuity.json"
     if not continuity_file.exists():
         continuity_file.write_text(json.dumps({
