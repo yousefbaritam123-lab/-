@@ -69,3 +69,12 @@ Do not describe the system as a fully autonomous professional studio until the a
 - Hands include simple separated finger and thumb strokes for a clearer silhouette; these are not yet a reusable anatomical hand-pose system.
 - The Blender syntax test now checks for the independent pivots and finger controls.
 - Latest Python and Blender CI runs are in progress on commit `ad8704a4b1cf9eb200bc0a312445b0dc646f6ee2`; do not treat the new Blender animation changes as accepted until the real Blender render workflow passes and its artifact is visually inspected.
+
+
+## Verification snapshot — 2026-11-24 (commit `f338c5e`)
+
+- Python CI: **66 tests passed**; includes the new Blender-puppet structure and portrait-staging source checks. [Run 45334870827](https://github.com/yousefbaritam123-lab/-/actions/runs/45334870827).
+- 15-second Skia pilot: 450 frames rendered and MP4 duration verification passed. [Run 45334870858](https://github.com/yousefbaritam123-lab/-/actions/runs/45334870858).
+- Art-direction benchmark: 360/360 frames decoded without errors; H.264, 540x960, 30 fps, 12 seconds. The contact sheet was inspected: the cast and backgrounds read clearly, but the motion still needs more varied acting and transitions. [Run 45334870856](https://github.com/yousefbaritam123-lab/-/actions/runs/45334870856).
+- Blender smoke test on the preceding code revision passed: 60/60 frames, H.264, 360x640, 30 fps, 2 seconds. Visual inspection revealed overlapping heads in a two-character portrait shot and weak hair visibility. Automatic multi-actor scale and hair-layer visibility fixes were committed afterward; the newest Blender integration run `45334870821` is still pending, so those fixes are not yet accepted.
+- Keep the Skia renderer as the quality reference for now. The Blender backend is an additional real render path, not yet a replacement for the visually stronger Skia output.
