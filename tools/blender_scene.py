@@ -220,7 +220,7 @@ def main():
     scene.render.film_transparent = False
     scene.view_settings.view_transform = "Standard"
     scene.render.image_settings.color_depth = "8"
-    scene.render.filepath = str(Path(manifest["output_root"]) / "frames" / "frame_")
+    scene.render.filepath = str(Path(manifest["output_root"]) / "frames" / "frame_######")
     scene.render.use_file_extension = True
     scene.render.resolution_percentage = 100
     scene.camera = None
@@ -316,7 +316,7 @@ def main():
     scene.frame_set(1)
     output = Path(manifest["output_root"])
     (output / "frames").mkdir(parents=True, exist_ok=True)
-    scene.render.filepath = str(output / "frames" / "frame_")
+    scene.render.filepath = str(output / "frames" / "frame_######")
     bpy.ops.render.render(animation=True)
     blend_path = output / (manifest["episode_id"] + ".blend")
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
