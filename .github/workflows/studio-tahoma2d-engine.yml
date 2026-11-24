@@ -128,7 +128,7 @@ jobs:
           fi
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool mousemove --window "$MAIN_WINDOW" 16 10 click 1
+          xdotool mousemove 168 68 click 1
           sleep 2
           xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
           convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
