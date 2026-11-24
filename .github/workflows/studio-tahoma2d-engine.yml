@@ -130,90 +130,100 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Open the documented File menu with its keyboard mnemonic. A fixed
-          # screen-coordinate click is unreliable under Xvfb/window decorations.
-          xdotool key --clearmodifiers alt+f
+          # Open File through a window-relative click. This avoids assuming the
+          # Xvfb window's absolute position or relying on an Alt-key mnemonic.
+          xdotool windowfocus --sync "$MAIN_WINDOW"
+          eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
+          FILE_MENU_X=$((X + 16))
+          FILE_MENU_Y=$((Y + 10))
+          xdotool mousemove "$FILE_MENU_X" "$FILE_MENU_Y" click 1
           sleep 1
           import -window root /tmp/tahoma2d-file-menu-open.png
-          tesseract /tmp/tahoma2d-file-menu-open.png stdout --psm 11 > /tmp/tahoma2d-file-menu.txt
+          convert /tmp/tahoma2d-file-menu-open.png -crop "760x820+$X+$Y" +repage -resize 200% /tmp/tahoma2d-file-menu-crop.png
+          tesseract /tmp/tahoma2d-file-menu-crop.png stdout --psm 6 > /tmp/tahoma2d-file-menu.txt
           python - <<'PY'
+          import csv
           import re
+          import subprocess
+          import time
           from pathlib import Path
+
+          screen = Path("/tmp/tahoma2d-file-menu-crop.png")
           text = Path("/tmp/tahoma2d-file-menu.txt").read_text(encoding="utf-8", errors="replace")
           normalized = re.sub(r"[^a-z]+", " ", text.lower())
-          if "open script console" not in normalized:
-              # Some Tahoma/Toonz builds nest the command under File > Script.
-              # Use the OCR position of the Script submenu, then inspect it.
-              import csv
-              import subprocess
-              subprocess.run(
-                  ["tesseract", "/tmp/tahoma2d-file-menu-open.png", "stdout", "--psm", "11", "tsv"],
-                  check=True, stdout=Path("/tmp/tahoma2d-file-menu.tsv").open("w", encoding="utf-8")
-              )
-              rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\t"))
-              candidates = [r for r in rows if r.get("text", "").strip().lower() == "script"
-                            and int(float(r.get("conf", "-1"))) >= 20]
-              if not candidates:
+          subprocess.run(
+              ["tesseract", str(screen), "stdout", "--psm", "6", "tsv"],
+              check=True, stdout=Path("/tmp/tahoma2d-file-menu.tsv").open("w", encoding="utf-8")
+          )
+          rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\t"))
+          words = [r for r in rows if r.get("text", "").strip() and int(float(r.get("conf", "-1"))) >= 10]
+
+          def find_phrase(items, phrase):
+              target = phrase.split()
+              for i in range(len(items)):
+                  candidate = [x["text"].strip().lower() for x in items[i:i+len(target)]]
+                  if candidate == target:
+                      return items[i:i+len(target)]
+              return None
+
+          match = find_phrase(words, "open script console")
+          if match is None:
+              # Tahoma builds with a nested File > Script submenu are handled too.
+              script_items = [r for r in words if r["text"].strip().lower() == "script"]
+              if not script_items:
                   print("File menu OCR:", text)
-                  raise SystemExit("File menu opened, but neither Open Script Console nor Script submenu was found")
-              item = max(candidates, key=lambda r: int(r["width"]) * int(r["height"]))
-              x = int(item["left"]) + int(item["width"]) // 2
-              y = int(item["top"]) + int(item["height"]) // 2
+                  raise SystemExit("File menu is open, but OCR cannot identify its Script command")
+              item = script_items[0]
+              # OCR image is scaled to 200%; convert its bounds back to desktop coordinates.
+              x = int(item["left"]) // 2 + int(__import__("os").environ["WINDOW_X"])
+              y = int(item["top"]) // 2 + int(__import__("os").environ["WINDOW_Y"])
               subprocess.run(["xdotool", "mousemove", str(x), str(y), "click", "1"], check=True)
-              import time
               time.sleep(1)
-              subprocess.run(["import", "-window", "root", "/tmp/tahoma2d-script-submenu.png"], check=True)
-              subprocess.run(
-                  ["tesseract", "/tmp/tahoma2d-script-submenu.png", "stdout", "--psm", "11"],
+              import subprocess as sp
+              sp.run(["import", "-window", "root", "/tmp/tahoma2d-script-submenu.png"], check=True)
+              sp.run([
+                  "convert", "/tmp/tahoma2d-script-submenu.png",
+                  "-crop", "900x820+" + __import__("os").environ["WINDOW_X"] + "+" + __import__("os").environ["WINDOW_Y"],
+                  "+repage", "-resize", "200%", "/tmp/tahoma2d-script-submenu-crop.png"
+              ], check=True)
+              submenu = Path("/tmp/tahoma2d-script-submenu-crop.png")
+              sp.run(
+                  ["tesseract", str(submenu), "stdout", "--psm", "6"],
                   check=True, stdout=Path("/tmp/tahoma2d-script-submenu.txt").open("w", encoding="utf-8")
               )
               text = Path("/tmp/tahoma2d-script-submenu.txt").read_text(encoding="utf-8", errors="replace")
-              normalized = re.sub(r"[^a-z]+", " ", text.lower())
-          if "open script console" not in normalized:
-              print("Menu OCR:", text)
-              raise SystemExit("Could not locate Open Script Console in the opened Tahoma2D menus")
-          import csv
-          import subprocess
-          subprocess.run(
-              ["tesseract", "/tmp/tahoma2d-file-menu-open.png", "stdout", "--psm", "11", "tsv"],
-              check=True, stdout=Path("/tmp/tahoma2d-menu-final.tsv").open("w", encoding="utf-8")
-          )
-          rows = list(csv.DictReader(Path("/tmp/tahoma2d-menu-final.tsv").open(), delimiter="\t"))
-          words = [r for r in rows if r.get("text", "").strip()]
-          match = None
-          for i in range(len(words)):
-              phrase = " ".join(x["text"].strip() for x in words[i:i+6]).lower()
-              if "open script console" in phrase:
-                  match = words[i:i+6]
-                  break
-          if match is None:
-              # For the nested-menu layout, read the submenu screenshot instead.
-              subprocess.run(
-                  ["tesseract", "/tmp/tahoma2d-script-submenu.png", "stdout", "--psm", "11", "tsv"],
+              sp.run(
+                  ["tesseract", str(submenu), "stdout", "--psm", "6", "tsv"],
                   check=True, stdout=Path("/tmp/tahoma2d-menu-final.tsv").open("w", encoding="utf-8")
               )
               rows = list(csv.DictReader(Path("/tmp/tahoma2d-menu-final.tsv").open(), delimiter="\t"))
-              words = [r for r in rows if r.get("text", "").strip()]
-              for i in range(len(words)):
-                  phrase = " ".join(x["text"].strip() for x in words[i:i+6]).lower()
-                  if "open script console" in phrase:
-                      match = words[i:i+6]
-                      break
+              words = [r for r in rows if r.get("text", "").strip() and int(float(r.get("conf", "-1"))) >= 10]
+              match = find_phrase(words, "open script console")
+              crop_x = int(__import__("os").environ["WINDOW_X"])
+              crop_y = int(__import__("os").environ["WINDOW_Y"])
+          else:
+              crop_x = int(__import__("os").environ["WINDOW_X"])
+              crop_y = int(__import__("os").environ["WINDOW_Y"])
+
           if match is None:
-              raise SystemExit("Open Script Console was recognized but its click target could not be resolved")
+              print("Menu OCR:", text)
+              raise SystemExit("Could not locate Open Script Console in Tahoma2D's File menu")
+
           left = min(int(x["left"]) for x in match)
           top = min(int(x["top"]) for x in match)
-          right = max(int(x["left"])+int(x["width"]) for x in match)
-          bottom = max(int(x["top"])+int(x["height"]) for x in match)
+          right = max(int(x["left"]) + int(x["width"]) for x in match)
+          bottom = max(int(x["top"]) + int(x["height"]) for x in match)
           Path("/tmp/tahoma2d-console-menu-click.txt").write_text(
-              f"{(left+right)//2} {(top+bottom)//2}\n", encoding="utf-8")
+              f"{left // 2 + crop_x} {top // 2 + crop_y}\n", encoding="utf-8"
+          )
           print("SCRIPT_CONSOLE_MENU_BOUNDS", left, top, right, bottom)
           PY
           read MENU_X MENU_Y < /tmp/tahoma2d-console-menu-click.txt
           xdotool mousemove "$MENU_X" "$MENU_Y" click 1
           sleep 3
           import -window root /tmp/tahoma2d-script-console-open.png
-          tesseract /tmp/tahoma2d-script-console-open.png stdout --psm 11 > /tmp/tahoma2d-console-screen.txt
+          convert /tmp/tahoma2d-script-console-open.png -resize 150% /tmp/tahoma2d-console-screen-large.png
+          tesseract /tmp/tahoma2d-console-screen-large.png stdout --psm 11 > /tmp/tahoma2d-console-screen.txt
           grep -qi "script console" /tmp/tahoma2d-console-screen.txt || {
             cat /tmp/tahoma2d-console-screen.txt
             echo "Tahoma2D Script Console did not become visible."
