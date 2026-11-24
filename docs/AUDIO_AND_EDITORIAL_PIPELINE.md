@@ -7,7 +7,9 @@ Place source audio under the episode project, for example:
 - `audio/music/` for licensed/original score
 - `audio/fx/` for effects and ambience
 
-Create `production/audio_mix.json`:
+Copy `production/audio_mix.template.json` to `production/audio_mix.json`, then replace the sample file names with the actual audio recordings in your project. The template is not runnable until those paths exist.
+
+Create/edit `production/audio_mix.json`:
 
 ```json
 {
