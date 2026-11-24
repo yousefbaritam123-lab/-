@@ -49,6 +49,15 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
         episode = {}
         errors.append(f"Project validation error: {exc}")
 
+    try:
+        from .script_qc import audit_dialogue
+        script_report = audit_dialogue(project_dir)
+        errors.extend(script_report.get("errors", []))
+        warnings.extend(script_report.get("warnings", []))
+    except Exception as exc:
+        script_report = {"status": "failed", "errors": [str(exc)]}
+        errors.append(f"Script QA failed: {exc}")
+
     fmt = episode.get("format", {})
     try:
         width, height = int(fmt["width"]), int(fmt["height"])
@@ -151,6 +160,7 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
             "all_frame_integrity": "passed" if expected and not (missing or tiny or corrupt or wrong_size or blank) else "failed",
             "audio": "present" if has_mix else "missing",
             "human_visual_approval": "approved" if approval_ok else "missing_or_invalid",
+            "script_qa": script_report.get("status", "not_run"),
         },
     }
     out = project_dir / "production" / "quality_report.json"
