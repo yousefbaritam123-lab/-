@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import xml.etree.ElementTree as ET
 
 from .skeletal_graph import SkeletonGraph
@@ -80,6 +81,199 @@ def prepare_named_character_svg(
     output_svg.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(wrapper).write(output_svg, encoding="utf-8", xml_declaration=True)
     return output_svg
+
+
+
+def prepare_named_character_layers(
+    source_svg: Path,
+    output_dir: Path,
+    character_id: str,
+    *,
+    view_box: tuple[float, float, float, float] = (150.0, 20.0, 260.0, 570.0),
+) -> Path:
+    """Split existing named model-sheet paths into aligned importable vector levels.
+
+    The source sheet is copied unchanged. Existing two-subpath arm/leg paths
+    are separated at their existing vertices; no new anatomy or artwork is
+    drawn. This prepares levels and joint landmarks, not a Plastic rig.
+    """
+    character_id = _safe_id(character_id)
+    source_svg, output_dir = Path(source_svg), Path(output_dir)
+    if not source_svg.is_file():
+        raise FileNotFoundError(source_svg)
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError(f"Output directory is not empty: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    source_root = ET.parse(source_svg).getroot()
+    candidates = [
+        node for node in source_root.iter(_tag("g"))
+        if node.get("transform", "").startswith("translate(")
+        and any(child.tag in {_tag("path"), _tag("circle"), _tag("ellipse")} for child in node.iter())
+    ]
+    if len(candidates) != 1:
+        raise ValueError(f"Expected one original character group in {source_svg.name}, found {len(candidates)}")
+    source_group = candidates[0]
+    x0, y0, width, height = view_box
+    shutil.copy2(source_svg, output_dir / "source_design_sheet.svg")
+    reference = output_dir / "full_character_reference.svg"
+    prepare_named_character_svg(source_svg, reference, character_id, view_box=view_box)
+
+    layers: list[tuple[str, ET.Element, dict[str, Any]]] = []
+    joints: dict[str, list[float]] = {}
+    bones: list[dict[str, str]] = []
+    generic_index = 0
+
+    for element_index, child in enumerate(list(source_group)):
+        tag = child.tag.rsplit("}", 1)[-1]
+        if tag == "path":
+            subpaths = _split_subpaths(child.get("d", ""))
+            parsed = [_absolute_polyline_points(path_data) for path_data in subpaths]
+            parsed = [points for points in parsed if len(points) >= 2]
+            fill = child.get("fill", "")
+            stroke_width = float(child.get("stroke-width", "0") or 0)
+
+            if fill == "none" and len(parsed) == 2 and all(len(points) == 3 for points in parsed):
+                mean_y = sum(point[1] for points in parsed for point in points) / 6
+                limb_kind = "arm" if mean_y < -180 else "leg"
+                for points in parsed:
+                    side = "L" if sum(point[0] for point in points) / 3 < 0 else "R"
+                    first_name, second_name = (
+                        ("upper_arm", "forearm") if limb_kind == "arm"
+                        else ("thigh", "shin")
+                    )
+                    for segment_name, segment_points in (
+                        (first_name, points[:2]), (second_name, points[1:])
+                    ):
+                        part = ET.Element(_tag("path"), dict(child.attrib))
+                        part.set("d", "M " + " L ".join(f"{px:g} {py:g}" for px, py in segment_points))
+                        layer_id = f"{segment_name}_{side}"
+                        layers.append((layer_id, part, {
+                            "source_element_index": element_index,
+                            "source_path_split_at_existing_vertex": True,
+                            "source_art_redrawn": False,
+                        }))
+                    if limb_kind == "arm":
+                        joints[f"{'left' if side == 'L' else 'right'}_shoulder"] = list(points[0])
+                        joints[f"{'left' if side == 'L' else 'right'}_elbow"] = list(points[1])
+                        joints[f"{'left' if side == 'L' else 'right'}_wrist"] = list(points[2])
+                    else:
+                        joints[f"{'left' if side == 'L' else 'right'}_hip"] = list(points[0])
+                        joints[f"{'left' if side == 'L' else 'right'}_knee"] = list(points[1])
+                        joints[f"{'left' if side == 'L' else 'right'}_ankle"] = list(points[2])
+            elif fill == "none" and len(parsed) == 1 and len(parsed[0]) == 2 and stroke_width >= 24:
+                points = parsed[0]
+                torso = ET.fromstring(ET.tostring(child, encoding="unicode"))
+                layers.append(("torso_centerline", torso, {
+                    "source_element_index": element_index,
+                    "source_art_redrawn": False,
+                }))
+                joints["neck"] = list(points[-1])
+                joints["pelvis"] = list(points[0])
+                bones.append({"name": "torso", "parent": "neck", "child": "pelvis"})
+            elif fill == "none" and len(parsed) == 2 and all(len(points) == 2 for points in parsed):
+                for points in parsed:
+                    side = "L" if sum(point[0] for point in points) / 2 < 0 else "R"
+                    part = ET.Element(_tag("path"), dict(child.attrib))
+                    part.set("d", "M " + " L ".join(f"{px:g} {py:g}" for px, py in points))
+                    layers.append((f"shoe_{side}", part, {
+                        "source_element_index": element_index,
+                        "source_path_split_at_existing_subpath": True,
+                        "source_art_redrawn": False,
+                    }))
+            else:
+                generic_index += 1
+                role = "costume_or_face_detail" if fill != "none" else "original_stroke_detail"
+                copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
+                layers.append((f"{role}_{generic_index:02d}", copied, {
+                    "source_element_index": element_index,
+                    "source_art_redrawn": False,
+                }))
+        elif tag == "circle":
+            radius = float(child.get("r", "0") or 0)
+            copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
+            if radius >= 40:
+                layer_id = "head"
+                joints["head_center"] = [
+                    float(child.get("cx", "0")), float(child.get("cy", "0"))
+                ]
+            else:
+                generic_index += 1
+                layer_id = f"face_detail_{generic_index:02d}"
+            layers.append((layer_id, copied, {
+                "source_element_index": element_index,
+                "source_art_redrawn": False,
+            }))
+        else:
+            generic_index += 1
+            copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
+            layers.append((f"original_detail_{generic_index:02d}", copied, {
+                "source_element_index": element_index,
+                "source_art_redrawn": False,
+            }))
+
+    if len(layers) < 8:
+        raise ValueError(f"Named character segmentation produced too few vector layers: {len(layers)}")
+    if not {"head_center", "neck", "pelvis"}.issubset(joints):
+        raise ValueError("Named character source is missing required head/torso landmarks")
+
+    bones.extend([
+        {"name": "head", "parent": "neck", "child": "head_center"},
+        {"name": "upper_arm_L", "parent": "left_shoulder", "child": "left_elbow"},
+        {"name": "forearm_L", "parent": "left_elbow", "child": "left_wrist"},
+        {"name": "upper_arm_R", "parent": "right_shoulder", "child": "right_elbow"},
+        {"name": "forearm_R", "parent": "right_elbow", "child": "right_wrist"},
+        {"name": "thigh_L", "parent": "left_hip", "child": "left_knee"},
+        {"name": "shin_L", "parent": "left_knee", "child": "left_ankle"},
+        {"name": "thigh_R", "parent": "right_hip", "child": "right_knee"},
+        {"name": "shin_R", "parent": "right_knee", "child": "right_ankle"},
+    ])
+
+    def make_svg(selected: list[tuple[str, ET.Element, dict[str, Any]]], destination: Path) -> None:
+        wrapper = ET.Element(_tag("svg"), {
+            "width": f"{width:g}", "height": f"{height:g}",
+            "viewBox": f"0 0 {width:g} {height:g}", "version": "1.1",
+            "data-character-id": character_id,
+        })
+        crop = ET.SubElement(wrapper, _tag("g"), {"transform": f"translate({-x0:g} {-y0:g})"})
+        for layer_id, element, _metadata in selected:
+            layer_group = ET.SubElement(crop, _tag("g"), {"id": layer_id})
+            character_group = ET.SubElement(layer_group, _tag("g"), dict(source_group.attrib))
+            character_group.append(ET.fromstring(ET.tostring(element, encoding="unicode")))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        ET.ElementTree(wrapper).write(destination, encoding="utf-8", xml_declaration=True)
+
+    for layer_id, element, _metadata in layers:
+        make_svg([(layer_id, element, {})], output_dir / f"{layer_id}.svg")
+    combined = output_dir / "rig_layers.svg"
+    make_svg(layers, combined)
+
+    manifest = {
+        "schema_version": 1,
+        "character_id": character_id,
+        "source_design_sheet": "source_design_sheet.svg",
+        "full_character_reference": "full_character_reference.svg",
+        "canvas": {"width": width, "height": height, "view_box": f"0 0 {width:g} {height:g}"},
+        "source_art_preserved": True,
+        "geometry_policy": "Only original vector elements are copied; existing polyline paths are split at their authored vertices without changing coordinates or stroke attributes.",
+        "layers": [
+            {"id": layer_id, "file": f"{layer_id}.svg", **metadata}
+            for layer_id, _element, metadata in layers
+        ],
+        "combined_levels_svg": combined.name,
+        "layer_count": len(layers),
+        "joints": joints,
+        "bones": bones,
+        "rigging_status": "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored",
+        "known_gaps": [
+            "No native Tahoma2D Plastic mesh or skeleton has been authored.",
+            "The source character uses simple stroke limbs; it does not contain separately drawn fingers or deformable hand artwork.",
+            "Head, face, scarf and clothing shapes are preserved as source vector levels; expression variants are not generated.",
+        ],
+    }
+    manifest_path = output_dir / "named_character_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return manifest_path
 
 
 def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int = 60) -> Path:
