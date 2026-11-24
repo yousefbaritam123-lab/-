@@ -48,6 +48,43 @@ class MoviePyTimelineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_timeline(root, timeline)
 
+    def test_real_moviepy_render_and_crossfade(self):
+        try:
+            from moviepy import ColorClip, VideoFileClip
+        except ImportError:
+            self.skipTest("MoviePy optional dependency is not installed")
+        from studio.moviepy_bridge import compose_moviepy_timeline
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            renders = root / "renders"
+            renders.mkdir()
+            for name, color in (("a.mp4", (220, 40, 40)), ("b.mp4", (40, 40, 220))):
+                clip = ColorClip(size=(48, 48), color=color, duration=0.6)
+                clip.write_videofile(
+                    str(renders / name), fps=10, codec="libx264",
+                    audio=False, logger=None,
+                )
+                clip.close()
+            timeline = root / "timeline.json"
+            timeline.write_text(json.dumps({
+                "fps": 10,
+                "output": "renders/final.mp4",
+                "clips": [
+                    {"source": "renders/a.mp4", "transition_in_seconds": 0},
+                    {"source": "renders/b.mp4", "transition_in_seconds": 0.2}
+                ]
+            }), encoding="utf-8")
+            output = compose_moviepy_timeline(root, timeline)
+            self.assertTrue(output.is_file())
+            self.assertGreater(output.stat().st_size, 1024)
+            rendered = VideoFileClip(str(output))
+            try:
+                self.assertAlmostEqual(rendered.duration, 1.0, delta=0.15)
+                self.assertEqual(rendered.size, (48, 48))
+            finally:
+                rendered.close()
+
 
 if __name__ == "__main__":
     unittest.main()
