@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from PIL import Image
 
 from studio.renderer import render_episode_frames, render_frame, shot_at
 from studio.cli import init_project
@@ -87,6 +88,46 @@ class RendererTests(unittest.TestCase):
             self.assertEqual(calls["count"], 2)
             with open(folder / "frame_000000.png", "rb") as stream:
                 self.assertEqual(stream.read(8), b"\x89PNG\r\n\x1a\n")
+
+    def test_renderer_retries_invalid_png_output(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            real_render = render_frame
+            calls = {"count": 0}
+
+            def invalid_then_valid(*args, **kwargs):
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    Path(args[2]).write_bytes(b"not a png")
+                    return
+                return real_render(*args, **kwargs)
+
+            with patch("studio.renderer.render_frame", side_effect=invalid_then_valid):
+                folder, rendered = render_episode_frames(
+                    project, start_frame=0, max_frames=1, frame_retries=1
+                )
+            self.assertEqual(rendered, 1)
+            self.assertEqual(calls["count"], 2)
+            with Image.open(folder / "frame_000000.png") as image:
+                image.verify()
+
+    def test_renderer_fails_after_retry_budget_and_leaves_no_partial_png(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+
+            def always_invalid(*args, **kwargs):
+                Path(args[2]).write_bytes(b"partial")
+
+            with patch("studio.renderer.render_frame", side_effect=always_invalid):
+                with self.assertRaisesRegex(RuntimeError, "failed after 2 attempt"):
+                    render_episode_frames(
+                        project, start_frame=0, max_frames=1, frame_retries=1
+                    )
+            self.assertFalse((project / "renders" / "frames" / "frame_000000.png").exists())
 
     def test_resume_skips_existing_frames_and_repairs_empty_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
