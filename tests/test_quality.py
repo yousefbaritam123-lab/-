@@ -37,7 +37,7 @@ class QualityGateTests(unittest.TestCase):
             audio.setnchannels(2)
             audio.setsampwidth(3)
             audio.setframerate(48000)
-            audio.writeframes(b"\\x00" * (48000 * 6))
+            audio.writeframes(b"\x00" * (48000 * 6))
         approval = {"episode_id":episode["id"],"approved":True,
                     "reviewer":"QA reviewer","notes":"Watched full video and reviewed frames."}
         (project / "production" / "human_visual_approval.json").write_text(
