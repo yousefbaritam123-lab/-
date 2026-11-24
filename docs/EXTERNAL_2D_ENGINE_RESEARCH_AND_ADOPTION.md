@@ -64,4 +64,18 @@ This means copying Skele2D's entire editor would duplicate existing pose/segment
 - Tiny 2D Rig Tools describes useful IK/driver behavior, but no clear license was located. Its source is not copied.
 - The Blender Rhubarb add-on README states it is not compatible with Blender 3.2 and above.
 
-## First adopted improvement\n\nThe first license-safe adaptation is in `studio/rig.py`: looping clips now interpolate the last keyframe back to the first across the cycle seam instead of holding the final pose and snapping when time wraps. A regression test checks continuity around the loop boundary. This is an independent Python implementation of the general cyclic pose-interpolation pattern documented by Skele2D; no Skele2D source file was copied.\n\nThis document records research and licensing decisions. It does not claim that any third-party engine has been fully integrated.
+## Adopted components
+
+### Skele2D structure and pose model
+
+- Vendored the upstream `BoneStructure.coffee`, `Structure.coffee`, and `Pose.coffee` reference files under `vendor/skele2d-reference/source/structure/`, with the upstream MIT `LICENSE.txt` and copyright notice.
+- Added `studio/skeletal_graph.py`, an independently written Python runtime adapter for named joints, bone segments, serializable skeleton graphs, pose interpolation, loop interpolation, and horizontal/vertical pose flips.
+- `studio/svg_character_assets.py` now exports a named-joint graph alongside the existing joint and bone fields in each extracted character rig manifest. The existing legacy fields remain available.
+- Added tests for graph serialization, invalid joint references, finite coordinates, pose interpolation, and loop interpolation.
+- The CoffeeScript reference files are retained for attribution/reference; the Python adapter is the runtime implementation. The browser editor and its UI are not part of our runtime.
+
+### Earlier loop-seam improvement
+
+`studio/rig.py` independently interpolates the last keyframe back to the first across loop boundaries. A regression test checks continuity around the cycle seam.
+
+This is a real model/runtime integration, not a complete external animation engine import. The Blender scene renderer still uses whole-character raster planes for original artwork; per-limb Blender cut-out animation is not yet integrated or visually approved.
