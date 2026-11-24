@@ -53,7 +53,12 @@ class VoiceGenerationTests(unittest.TestCase):
                 "voices": {"youssef": {"model": "assets/missing.onnx"}}
             }), encoding="utf-8")
             (root / "episode.json").write_text(json.dumps({
-                "id": "voice-test", "shots": []
+                "id": "voice-test", "shots": [{
+                    "id": "s1", "duration_seconds": 2, "dialogue": [{
+                        "speaker": "youssef", "text": "مرحبا",
+                        "start_seconds": 0, "end_seconds": 1
+                    }]
+                }]
             }), encoding="utf-8")
             with patch("studio.voice.shutil.which", return_value="piper"):
                 with self.assertRaises(FileNotFoundError):
