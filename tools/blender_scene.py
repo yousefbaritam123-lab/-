@@ -117,7 +117,40 @@ def set_pose(actor, action, frame):
         pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
 
 
-def build_character(actor, profile, width, height):
+
+
+def set_face(actor, action, frame):
+    mouth = "REST"
+    brow_angle = 0.0
+    if action in ("talk", "explain"):
+        mouth = "A"
+    elif action in ("laugh", "celebrate", "celebrate_small", "agree"):
+        mouth = "SMILE"
+    elif action in ("sad", "apologize"):
+        mouth = "FROWN"
+        brow_angle = 0.18
+    elif action in ("surprised", "impact_react", "jump"):
+        mouth = "O"
+        brow_angle = -0.20
+    elif action in ("disagree", "angry"):
+        mouth = "E"
+        brow_angle = 0.28
+    for name, obj in actor.get("mouths", {}).items():
+        obj.hide_render = name != mouth
+        obj.keyframe_insert(data_path="hide_render", frame=frame)
+    for suffix, brow in actor.get("brows", {}).items():
+        brow.rotation_euler[2] = brow_angle if suffix == "L" else -brow_angle
+        brow.keyframe_insert(data_path="rotation_euler", frame=frame)
+
+
+def set_viseme(actor, shape, frame):
+    shape = str(shape).upper()
+    if shape not in actor.get("mouths", {}):
+        shape = "REST"
+    for name, obj in actor.get("mouths", {}).items():
+        obj.hide_render = name != shape
+        obj.keyframe_insert(data_path="hide_render", frame=frame)
+\n\ndef build_character(actor, profile, width, height):
     actor_id = str(actor["id"])
     appearance = dict(profile.get("appearance", {}))
     appearance.update(actor.get("appearance", {}))
@@ -153,8 +186,35 @@ def build_character(actor, profile, width, height):
                   0.055, 0.075, white, root, 0.34)
         make_disc(actor_id + "_eye", side * eye_gap * 0.5 + 0.012, 1.46,
                   0.024, 0.04, pupil, root, 0.37)
-    make_line(actor_id + "_mouth", [(-0.09, 1.22), (0, 1.19), (0.09, 1.22)],
-              0.018, ink, root, 0.38)
+    # Separate mouth drawings can be switched at dialogue viseme timestamps.
+    mouth_rest = make_line(actor_id + "_mouth_rest", [(-0.09, 1.22), (0, 1.19), (0.09, 1.22)],
+                           0.018, ink, root, 0.38)
+    mouth_smile = make_line(actor_id + "_mouth_smile",
+                            [(-0.11, 1.22), (-0.05, 1.17), (0.05, 1.17), (0.11, 1.22)],
+                            0.018, ink, root, 0.38)
+    mouth_frown = make_line(actor_id + "_mouth_frown",
+                            [(-0.11, 1.17), (-0.05, 1.22), (0.05, 1.22), (0.11, 1.17)],
+                            0.018, ink, root, 0.38)
+    mouth_wide = make_line(actor_id + "_mouth_wide",
+                           [(-0.12, 1.21), (0, 1.20), (0.12, 1.21)],
+                           0.035, ink, root, 0.38)
+    mouth_open = make_disc(actor_id + "_mouth_open", 0, 1.20, 0.065, 0.095, ink, root, 0.39)
+    mouths = {"REST": mouth_rest, "SMILE": mouth_smile, "FROWN": mouth_frown,
+              "E": mouth_wide, "A": mouth_open, "O": mouth_open, "U": mouth_open,
+              "I": mouth_wide, "CLOSED": mouth_rest}
+    for mouth in set(mouths.values()):
+        mouth.hide_render = True
+        mouth.keyframe_insert(data_path="hide_render", frame=1)
+    mouth_rest.hide_render = False
+    mouth_rest.keyframe_insert(data_path="hide_render", frame=1)
+
+    brows = {}
+    for side, suffix in ((-1, "L"), (1, "R")):
+        brow = make_pivot(actor_id + "_brow_" + suffix, root, (side * 0.16, 1.56, 0.39))
+        make_line(actor_id + "_brow_line_" + suffix,
+                  [(-0.075, 0), (0.0, 0.018), (0.075, 0)],
+                  0.018, hair, brow, 0.02)
+        brows[suffix] = brow
 
     torso_len = 0.92 * float(proportions.get("torso", 1))
     make_line(actor_id + "_torso_outline", [(0, 1.08), (0, 0.16)], 0.27, ink, root, 0.08)
@@ -191,7 +251,7 @@ def build_character(actor, profile, width, height):
         scarf_mat = material(actor_id + "_scarf", rgba(appearance.get("accent", "#C62828")))
         make_line(actor_id + "_scarf", [(-0.2, 1.02), (0, 0.83), (0.2, 1.02)],
                   0.07, scarf_mat, root, 0.22)
-    return {"root": root, "arms": arms, "legs": legs}
+    return {"root": root, "arms": arms, "legs": legs, "mouths": mouths, "brows": brows}
 
 
 def main():
@@ -313,9 +373,23 @@ def main():
             if track:
                 for segment in track:
                     action_frame = start + max(0, round(float(segment.get("start", 0)) * fps))
-                    set_pose(actor, segment.get("action", "idle"), min(action_frame, end))
+                    action_frame = min(action_frame, end)
+                    action = segment.get("action", "idle")
+                    set_pose(actor, action, action_frame)
+                    set_face(actor, action, action_frame)
             else:
-                set_pose(actor, shot.get("action", "idle"), start)
+                action = shot.get("action", "idle")
+                set_pose(actor, action, start)
+                set_face(actor, action, start)
+            # Apply Rhubarb-derived cues when dialogue lines carry viseme data.
+            for line in shot.get("dialogue", []):
+                if line.get("speaker") != actor_id:
+                    continue
+                line_start = float(line.get("start_seconds", 0.0))
+                for cue in line.get("visemes", []):
+                    cue_frame = start + round((line_start + float(cue.get("at", 0.0))) * fps)
+                    if cue_frame <= end:
+                        set_viseme(actor, cue.get("shape", "REST"), max(start, cue_frame))
             root.location.y += 0.035
             root.keyframe_insert(data_path="location", frame=start + max(1, int(fps * 0.25)))
             root.location.y -= 0.035
