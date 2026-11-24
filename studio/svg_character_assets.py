@@ -59,7 +59,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
         "source_preserved": True,
         "character_count": len(groups),
         "characters": [],
-        "rig_status": "source_layers_extracted_not_yet_articulated",
+        "rig_status": "source_layers_extracted_joint_maps_created_articulation_incomplete",
         "important_limit": (
             "Source SVG elements are preserved as independent vector layers. "
             "This does not infer anatomical joints or split compound paths."
@@ -84,17 +84,90 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             key: value for key, value in group.attrib.items() if key != "id"
         })
         elements = []
-        for element_index, child in enumerate(list(group)):
-            copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
+        source_children = list(group)
+        for element_index, child in enumerate(source_children):
+            tag = child.tag.rsplit("}", 1)[-1]
+            role = tag
+            if tag == "path":
+                fill = child.get("fill", "")
+                stroke_width = child.get("stroke-width", "")
+                if fill == "none" and stroke_width == "8":
+                    role = "arm_outline_source"
+                elif fill == "none" and stroke_width == "4":
+                    role = "arm_skin_source"
+                elif stroke_width == "5" and fill != "none":
+                    role = "body_or_torso_source"
+                elif stroke_width == "4" and fill != "none":
+                    role = "shoe_or_accessory_source"
+                else:
+                    role = "decorative_path_source"
+            elif tag == "ellipse":
+                role = "ground_shadow"
+            elif tag == "rect":
+                role = "neck_source"
+            elif tag == "circle":
+                role = "head_or_eye_source"
+            elif tag == "text":
+                role = "contact_sheet_label"
             layer_id = f"source_layer_{element_index:02d}"
-            layer = ET.SubElement(inner, _tag("g"), {"id": layer_id})
+            layer = ET.SubElement(inner, _tag("g"), {"id": layer_id, "data-role": role})
+            copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
             layer.append(copied)
             elements.append({
-                "layer_id": layer_id,
-                "source_order": element_index,
-                "source_tag": child.tag.rsplit("}", 1)[-1],
+                "layer_id": layer_id, "role": role,
+                "source_order": element_index, "source_tag": tag,
                 "source_attributes": dict(child.attrib),
             })
+
+        # Joint landmarks are relative to the character's 200 x 220 cell.
+        # They describe the source pose; they do not imply that compound
+        # artwork has already been separated into independently moving pieces.
+        cx, cy = 100.0, 76.0
+        joints = {
+            "head_center": [cx, cy], "neck": [cx, 95.0],
+            "left_shoulder": [cx - 17.0, 109.0],
+            "right_shoulder": [cx + 17.0, 109.0],
+            "left_elbow": [cx - 36.0, 133.0],
+            "right_elbow": [cx + 36.0, 133.0],
+            "left_wrist": [cx - 50.0, 151.0],
+            "right_wrist": [cx + 50.0, 151.0],
+            "pelvis": [cx, 148.0],
+            "left_hip": [cx - 10.0, 146.0],
+            "right_hip": [cx + 10.0, 146.0],
+            "left_knee": [cx - 17.0, 172.0],
+            "right_knee": [cx + 17.0, 172.0],
+            "left_ankle": [cx - 30.0, 188.0],
+            "right_ankle": [cx + 30.0, 188.0],
+        }
+        rig = {
+            "schema_version": 1,
+            "character_id": character_id,
+            "coordinate_space": "character_cell_200x220",
+            "joints": joints,
+            "bones": [
+                {"name": "head", "parent": "neck", "child": "head_center"},
+                {"name": "torso", "parent": "neck", "child": "pelvis"},
+                {"name": "upper_arm_L", "parent": "left_shoulder", "child": "left_elbow"},
+                {"name": "forearm_L", "parent": "left_elbow", "child": "left_wrist"},
+                {"name": "upper_arm_R", "parent": "right_shoulder", "child": "right_elbow"},
+                {"name": "forearm_R", "parent": "right_elbow", "child": "right_wrist"},
+                {"name": "thigh_L", "parent": "left_hip", "child": "left_knee"},
+                {"name": "shin_L", "parent": "left_knee", "child": "left_ankle"},
+                {"name": "thigh_R", "parent": "right_hip", "child": "right_knee"},
+                {"name": "shin_R", "parent": "right_knee", "child": "right_ankle"},
+            ],
+            "articulation_status": {
+                "arms": "landmarks_defined; source compound paths not yet split",
+                "legs": "landmarks_defined; connected lower-body silhouette not yet split",
+                "head": "source element exists",
+                "torso": "source element exists",
+                "hands": "not separately drawn",
+                "feet": "source path may contain both feet",
+            },
+            "source_artwork_changed": False,
+        }
+        rig_path = output_dir / f"{character_id}.rig.json"
+        rig_path.write_text(json.dumps(rig, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         target = output_dir / f"{character_id}.svg"
         ET.ElementTree(wrapper).write(target, encoding="utf-8", xml_declaration=True)
         manifest["characters"].append({
@@ -103,7 +176,9 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             "svg": target.name,
             "source_element_count": len(elements),
             "layers": elements,
-            "rig_status": "unmapped_source_layers",
+            "rig": rig_path.name,
+            "joint_count": len(joints),
+            "rig_status": "joint_map_created_articulation_incomplete",
         })
 
     manifest_path = output_dir / "cast_manifest.json"
