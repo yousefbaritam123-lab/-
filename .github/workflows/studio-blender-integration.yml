@@ -54,19 +54,29 @@ jobs:
           episode["id"] = "blender-integration-smoke"
           episode["title"] = "Blender 2D render integration"
           episode["format"] = {"width": 360, "height": 640, "fps": 30, "duration_seconds": 2}
+          episode["locations"] = [
+              {"id": "street_01", "name": "Algerian street", "sky_bottom": "#D9E3EA", "ground": "#647D62"},
+              {"id": "classroom_01", "name": "Classroom", "environment": "classroom"},
+              {"id": "rooftop_01", "name": "Rooftop", "environment": "rooftop"},
+              {"id": "park_01", "name": "Park", "environment": "park"},
+              {"id": "beach_01", "name": "Beach", "environment": "beach"}
+          ]
+          environments = ["street_01", "classroom_01", "rooftop_01", "park_01", "beach_01"]
+          actions = ["wave", "walk", "think", "celebrate", "talk"]
           episode["shots"] = [{
-              "id": "smoke-shot",
-              "duration_seconds": 2,
-              "location": "street_01",
+              "id": f"smoke-shot-{index + 1}",
+              "duration_seconds": 0.4,
+              "location": environment,
               "actors": ["youssef", "adam"],
-              "action": "wave",
+              "action": actions[index],
+              "camera": {"zoom": 1.0 + index * 0.04, "x": index * 4},
               "positions": {"youssef": {"x": 125, "y": 500}, "adam": {"x": 245, "y": 500}},
               "motion_tracks": {
-                  "youssef": [{"start": 0, "end": 2, "action": "wave"}],
-                  "adam": [{"start": 0, "end": 2, "action": "listen"}]
+                  "youssef": [{"start": 0, "end": 0.4, "action": actions[index]}],
+                  "adam": [{"start": 0, "end": 0.4, "action": "listen"}]
               },
               "dialogue": []
-          }]
+          } for index, environment in enumerate(environments)]
           path.write_text(json.dumps(episode, ensure_ascii=False, indent=2), encoding="utf-8")
           PY
       - name: Validate and render with Blender
