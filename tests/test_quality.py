@@ -57,6 +57,15 @@ class QualityGateTests(unittest.TestCase):
             report = audit_episode(p)
             self.assertTrue(any("incorrect dimensions" in e for e in report["errors"]))
 
+    def test_corrupt_or_wrong_duration_audio_mix_blocks_delivery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.project(tmp)
+            self.frames(p)
+            (p / "audio" / "final_mix.wav").write_bytes(b"not a wav file")
+            report = audit_episode(p)
+            self.assertFalse(report["delivery_eligible"])
+            self.assertTrue(any("cannot be decoded" in error.lower() for error in report["errors"]))
+
     def test_delivery_requires_audio_and_human_approval(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = self.project(tmp)
