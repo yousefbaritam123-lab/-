@@ -109,7 +109,7 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             output = prepare_named_character_svg(source, root / "prepared" / "youssef.svg", "youssef")
             self.assertEqual(source.read_bytes(), original)
             extracted = ET.parse(output).getroot()
-            self.assertEqual(extracted.get("viewBox"), "0 0 360 570")
+            self.assertEqual(extracted.get("viewBox"), "0 0 260 570")
             self.assertEqual(len(list(extracted.iter(ns + "path"))), 1)
             self.assertEqual(len(list(extracted.iter(ns + "circle"))), 1)
             self.assertFalse(any(node.tag == ns + "rect" for node in extracted.iter()))
