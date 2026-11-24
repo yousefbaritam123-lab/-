@@ -32,7 +32,12 @@ class QualityGateTests(unittest.TestCase):
 
     def approve_and_add_audio(self, project):
         episode = json.loads((project / "episode.json").read_text(encoding="utf-8"))
-        (project / "audio" / "final_mix.wav").write_bytes(b"test-audio")
+        import wave
+        with wave.open(str(project / "audio" / "final_mix.wav"), "wb") as audio:
+            audio.setnchannels(2)
+            audio.setsampwidth(3)
+            audio.setframerate(48000)
+            audio.writeframes(b"\\x00" * (48000 * 6))
         approval = {"episode_id":episode["id"],"approved":True,
                     "reviewer":"QA reviewer","notes":"Watched full video and reviewed frames."}
         (project / "production" / "human_visual_approval.json").write_text(
