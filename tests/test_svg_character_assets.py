@@ -140,7 +140,7 @@ class SvgCharacterAssetsTests(unittest.TestCase):
                 self.assertTrue((output / "source_design_sheet.svg").is_file())
                 self.assertTrue((output / "full_character_reference.svg").is_file())
                 self.assertTrue((output / "rig_layers.svg").is_file())
-                self.assertGreaterEqual(manifest["layer_count"], 9)
+                self.assertGreaterEqual(manifest["layer_count"], 14)
                 self.assertEqual(manifest["rigging_status"],
                                  "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored")
                 self.assertIn("upper_arm_L", {layer["id"] for layer in manifest["layers"]})
