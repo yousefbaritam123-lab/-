@@ -52,15 +52,18 @@ procedural substitute.
 ## Blender source-art integration
 
 `studio.blender_bridge` prepares the extracted cast automatically when a Blender
-render includes `cast_id` values such as `extra_001`. The Blender scene imports
-the resulting per-character SVG as curve artwork and groups it under the actor
-transform. This is the original character drawing, not the procedural puppet
-replacement. The current integration animates the imported drawing as a whole;
-per-limb pivots are not yet connected to the Blender scene.
+render includes `cast_id` values such as `extra_001`. It also extracts the
+character-only groups from the official Youssef and Adam model sheets.
 
-**Still incomplete:** the combined lower-body silhouette is preserved and has
-hip/knee landmarks, but is not yet separated into independently moving thighs
-and shins. Hands/fingers are not independently drawn. The 60-character Blender
-workflow must complete and its rendered frames must be visually inspected
-before calling the rig production-ready. Named Youssef/Adam design sheets are
-not yet wired through this cast-60 importer and still use the legacy builder.
+Each original SVG is rasterized to a transparent PNG at 3× its viewBox dimensions
+with CairoSVG. Blender displays that image on a transparent emission plane under
+the actor transform. This keeps open strokes, outlines, fills, clothing and face
+details that Blender's built-in SVG importer omits. It uses the source artwork,
+not a procedural puppet replacement.
+
+The current Blender integration animates the complete artwork plane as one
+character. The separated arm paths and joint maps are not yet connected to
+independent Blender pivots. The lower-body silhouette remains connected and is
+not yet separated into moving thighs and shins. Hands/fingers are not separately
+drawn in the source art. The 60-character cast and the named Youssef/Adam art
+must pass the visual review before this can be called a production-ready rig.
