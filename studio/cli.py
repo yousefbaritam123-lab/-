@@ -65,7 +65,7 @@ def init_project(path: Path) -> None:
         episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     mix_template = path / "production" / "audio_mix.template.json"
     if not mix_template.exists():
-        mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     continuity_file = path / "continuity.json"
     if not continuity_file.exists():
         continuity_file.write_text(json.dumps({
