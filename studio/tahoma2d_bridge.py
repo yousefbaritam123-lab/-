@@ -72,6 +72,7 @@ def prepare_tahoma2d_character(character_id: str, prepared_cast_dir: Path,
 
     # Keep an untouched, full-character SVG as the visual source of truth.
     shutil.copy2(source_svg, target / "full_character_reference.svg")
+    shutil.copy2(rig_json, target / rig_json.name)
     rig = json.loads(rig_json.read_text(encoding="utf-8"))
     layers_root = ET.parse(layers_svg).getroot()
     outer = next((n for n in layers_root if n.tag == _tag("g")), None)
