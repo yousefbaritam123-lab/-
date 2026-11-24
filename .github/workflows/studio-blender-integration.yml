@@ -46,6 +46,8 @@ jobs:
       - name: Create a two-second 2D scene
         run: |
           python -m studio.cli init projects/blender-integration
+          mkdir -p projects/blender-integration/assets/characters
+          cp -R assets/characters/cast_60 projects/blender-integration/assets/characters/cast_60
           python - <<'PY'
           import json
           from pathlib import Path
@@ -55,6 +57,8 @@ jobs:
           episode["id"] = "blender-integration-smoke"
           episode["title"] = "Blender 2D render integration"
           episode["format"] = {"width": 360, "height": 640, "fps": 30, "duration_seconds": 2}
+          for actor, cast_id in zip(episode["characters"], ("extra_001", "extra_002")):
+              actor["cast_id"] = cast_id
           episode["locations"] = [
               {"id": "street_01", "name": "Algerian street", "sky_bottom": "#D9E3EA", "ground": "#647D62"},
               {"id": "classroom_01", "name": "Classroom", "environment": "classroom"},
