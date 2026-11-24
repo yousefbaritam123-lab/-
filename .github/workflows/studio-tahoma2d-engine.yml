@@ -134,6 +134,7 @@ jobs:
           # Xvfb window's absolute position or relying on an Alt-key mnemonic.
           xdotool windowfocus --sync "$MAIN_WINDOW"
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
+          export WINDOW_X="$X" WINDOW_Y="$Y"
           FILE_MENU_X=$((X + 16))
           FILE_MENU_Y=$((Y + 10))
           xdotool mousemove "$FILE_MENU_X" "$FILE_MENU_Y" click 1
