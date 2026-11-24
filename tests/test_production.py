@@ -76,9 +76,9 @@ class IterativeProductionTests(unittest.TestCase):
                     raise RuntimeError("simulated temporary render crash")
                 return self.fake_render(project_dir, start, count, resume)
 
-            with patch("studio.production.render_episode_frames", side_effect=flaky_render), \\
-                 patch("studio.production.certify_delivery", return_value=output):
-                report = run_production(project, max_repair_rounds=3)
+            with patch("studio.production.render_episode_frames", side_effect=flaky_render):
+                with patch("studio.production.certify_delivery", return_value=output):
+                    report = run_production(project, max_repair_rounds=3)
 
             self.assertEqual(report["status"], "delivered")
             self.assertEqual(calls["count"], 2)
