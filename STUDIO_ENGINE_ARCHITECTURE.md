@@ -21,7 +21,7 @@ The repository now has a Python orchestration layer and a first deterministic Sk
 - PNG frame output so rendering can be resumed by frame range.
 - H.264 encoding through imageio-ffmpeg.
 
-## Important limitations
+## Tahoma2D integration status\n\nThe `studio.tahoma2d_bridge` adapter exports the existing character SVGs and available articulated arm/foot vector segments into canvas-aligned SVG levels, with the existing joint map and an import guide. Run `python -m studio.cli tahoma2d-prepare projects/episode-001` after `init`. Tahoma2D imports SVG levels as PLI vector drawings and its Plastic tool can build a mesh-linked skeleton.\n\nThis is an asset handoff, not an automatic native `.tnz` scene generator. The Plastic mesh/skeleton still has to be authored and saved by Tahoma2D. Current cast data does not yet split the torso and both legs into complete independent cut-out layers, so the first integration milestone is a visually verified rig for one character. Blender is no longer the primary planned character-animation backend; its code is retained only as a legacy optional path until the Tahoma2D pilot passes.\n\n## Important limitations
 
 This is a working foundation, not a finished studio. The renderer currently uses a procedural stickman rig and does not yet provide full skeletal IK, authored vector character rigs, robust Arabic text shaping, advanced lip-sync, multi-track audio mixing, or professional background painting. Those are planned engine modules and must be implemented and tested separately.
 
