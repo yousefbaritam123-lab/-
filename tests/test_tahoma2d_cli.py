@@ -24,8 +24,10 @@ class Tahoma2DCommandTests(unittest.TestCase):
                 self.assertTrue((folder / manifest["reference_art"]).is_file())
                 self.assertEqual(
                     manifest["rigging_status"],
-                    "reference_only_manual_layering_and_plastic_skeleton_required",
+                    "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored",
                 )
+                self.assertGreaterEqual(manifest["layer_count"], 12)
+                self.assertTrue((folder / "rig_layers.svg").is_file())
                 self.assertFalse(any(folder.glob("*.tnz")))
 
 
