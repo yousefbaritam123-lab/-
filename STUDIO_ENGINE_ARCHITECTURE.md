@@ -21,7 +21,17 @@ The repository now has a Python orchestration layer and a first deterministic Sk
 - PNG frame output so rendering can be resumed by frame range.
 - H.264 encoding through imageio-ffmpeg.
 
-## Tahoma2D integration status\n\nThe `studio.tahoma2d_bridge` adapter exports the existing character SVGs and available articulated arm/foot vector segments into canvas-aligned SVG levels, with the existing joint map and an import guide. Run `python -m studio.cli tahoma2d-prepare projects/episode-001` after `init`. Tahoma2D imports SVG levels as PLI vector drawings and its Plastic tool can build a mesh-linked skeleton.\n\nThis is an asset handoff, not an automatic native `.tnz` scene generator. The Plastic mesh/skeleton still has to be authored and saved by Tahoma2D. Current cast data does not yet split the torso and both legs into complete independent cut-out layers, so the first integration milestone is a visually verified rig for one character. Blender is no longer the primary planned character-animation backend; its code is retained only as a legacy optional path until the Tahoma2D pilot passes.\n\n## Important limitations
+## Tahoma2D integration status
+
+The `studio.tahoma2d_bridge` adapter exports the original Youssef and Adam sheets into canvas-aligned SVG levels. Existing arm and leg polylines are split only at vertices already authored in the source; original sheets are preserved and joint landmarks are recorded. Run `python -m studio.cli tahoma2d-prepare projects/episode-001` after `init`.
+
+This is a vector asset handoff, not an automatic native `.tnz` scene generator. No Plastic mesh or skeleton has yet been authored. Tahoma2D v1.6.3 is installed and launched in CI, and its `tcomposer` interface is detected, but a real character scene has not yet been rendered through it.
+
+The current source sheets are simplified line-art, not finished production character art. Youssef's SVG does not draw the cream shirt or dark trousers described in its model-sheet notes; Adam has a blue torso but no separately drawn sleeves or hands. The bridge deliberately does not invent or repaint these missing parts. The character-art department must complete approved source artwork, then the rigging department can build and test Plastic rigs.
+
+Blender remains a legacy optional backend until the Tahoma2D character pilot passes a real render and visual review.
+
+## Important limitations
 
 This is a working foundation, not a finished studio. The renderer currently uses a procedural stickman rig and does not yet provide full skeletal IK, authored vector character rigs, robust Arabic text shaping, advanced lip-sync, multi-track audio mixing, or professional background painting. Those are planned engine modules and must be implemented and tested separately.
 
