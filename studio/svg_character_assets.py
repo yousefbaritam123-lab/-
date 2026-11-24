@@ -45,7 +45,7 @@ def prepare_named_character_svg(
     output_svg: Path,
     character_id: str,
     *,
-    view_box: tuple[float, float, float, float] = (100.0, 20.0, 360.0, 570.0),
+    view_box: tuple[float, float, float, float] = (150.0, 20.0, 260.0, 570.0),
 ) -> Path:
     """Extract the original character drawing from a labeled model sheet.
 
