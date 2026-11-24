@@ -82,4 +82,4 @@ This always creates `production/edit_plan.json` with shot boundaries and exact f
 
 ## Current limits
 
-These tools do not write a finished screenplay, generate actors' voices, or decide whether a performance is emotionally convincing. The user still supplies/records dialogue and reviews creative choices. Rhubarb can derive mouth cues from recorded audio; Blender can now switch its basic mouth drawings at those cues. This is a working pipeline layer, not yet a complete professional sound or animation department.
+These tools do not write a finished screenplay, generate actors' voices, or decide whether a performance is emotionally convincing. The user can record dialogue or supply a compatible Piper Arabic voice model for local TTS. Rhubarb can derive mouth cues from recorded audio; Blender can now switch its basic mouth drawings at those cues. This is a working pipeline layer, not yet a complete professional sound or animation department.
