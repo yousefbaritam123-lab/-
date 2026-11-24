@@ -112,6 +112,8 @@ jobs:
           done
           xdotool key --clearmodifiers alt+f
           sleep 1
+          xdotool key --clearmodifiers s
+          sleep 1
           xdotool key --clearmodifiers r
           sleep 2
           xdotool key --clearmodifiers ctrl+l
@@ -120,9 +122,7 @@ jobs:
           sleep 12
           SCENE=/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz
           if [ ! -s "$SCENE" ]; then
-            xdotool key --clearmodifiers alt+f || true
-            sleep 1
-            xdotool screenshot /tmp/tahoma2d-file-menu.png || true
+            import -window root /tmp/tahoma2d-screen.png || true
             cat /tmp/tahoma2d-gui.log || true
             echo "Tahoma2D did not save the requested native scene through ToonzScript."
             exit 1
