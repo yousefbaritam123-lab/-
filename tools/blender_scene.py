@@ -321,7 +321,9 @@ def build_character(actor, profile, width, height):
 
     head_r = float(appearance.get("head_radius", 72)) / 100.0 * float(proportions.get("head", 1))
     make_disc(actor_id + "_head", 0, 1.43, head_r, head_r * 1.08, skin, root, 0.24)
-    make_disc(actor_id + "_hair", 0, 1.58, head_r * 1.02, head_r * 0.48, hair, root, 0.27)
+    # Keep the cap above the eyes and in front of the face mask so the hair
+    # remains visible instead of being hidden by the skin-colored face layer.
+    make_disc(actor_id + "_hair", 0, 1.68, head_r * 1.02, head_r * 0.38, hair, root, 0.32)
     # Forehead-colored mask keeps the hairline above the face.
     make_disc(actor_id + "_face", 0, 1.40, head_r * 0.91, head_r * 0.82, skin, root, 0.29)
     eye_gap = float(appearance.get("eye_spacing", 48)) / 100.0
@@ -531,7 +533,14 @@ def main():
             source_actor = next(c for c in manifest["characters"] if c["id"] == actor_id)
             px = float(pos.get("x", source_actor.get("x", width * 0.5)))
             py = float(pos.get("y", source_actor.get("y", height * 0.82)))
-            actor_scale = float(pos.get("scale", source_actor.get("scale", 1.0)))
+            base_scale = float(pos.get("scale", source_actor.get("scale", 1.0)))
+            # Portrait framing needs smaller puppets when several actors share
+            # the same narrow 9:16 shot; otherwise their heads collide.
+            actor_count = max(1, len(active))
+            stage_scale = 1.0 if actor_count == 1 else max(
+                0.55, 0.82 * math.sqrt(2.0 / actor_count)
+            )
+            actor_scale = base_scale * stage_scale
             root.scale = (actor_scale, actor_scale, actor_scale)
             root.keyframe_insert(data_path="scale", frame=start)
             root.location = ((px - width * 0.5) / 100.0, (height * 0.5 - py) / 100.0, 0)
