@@ -28,7 +28,7 @@ jobs:
       - name: Install Tahoma2D and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
+          sudo apt-get install -y xvfb xdotool libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
           python -m pip install --upgrade pip pillow
           sudo apt-get install -y /tmp/Tahoma2D-linux-gcc.deb
           dpkg -L tahoma2d | tee /tmp/tahoma2d-files.txt
@@ -79,21 +79,70 @@ jobs:
                   raise SystemExit(f"{character} segmented vector package is incomplete")
           print("YOUSEFF_ADAM_SOURCE_ART_PREPARED")
           PY
-      - name: Confirm native scene render is gated on a real authored project
+      - name: Prepare native scene inputs and ToonzScript
         run: |
-          echo "Tahoma2D and tcomposer are installed. No native .tnz scene for our cast exists yet."
-          echo "A render test will be enabled only after a scene is authored and saved by Tahoma2D."
-      - name: Launch desktop application in virtual display
+          python - <<'PY'
+          from pathlib import Path
+          from studio.tahoma2d_authoring import prepare_scene_levels, write_toonzscript
+          project = Path("/tmp/youssef-tahoma2d-pilot")
+          levels = prepare_scene_levels(project, project / "production/tahoma2d/authoring")
+          script = write_toonzscript(
+              project / "production/tahoma2d/scenes/youssef-adam-source-pilot.tnz",
+              levels,
+              project / "production/tahoma2d/authoring/create_native_scene.js",
+              frames=24,
+          )
+          print("Prepared Tahoma2D ToonzScript:", script)
+          PY
+      - name: Author a genuine .tnz scene inside Tahoma2D
+        env:
+          QT_X11_NO_MITSHM: "1"
         run: |
-          set +e
-          timeout 20s xvfb-run -a tahoma2d
-          code=$?
-          set -e
-          if [ "$code" -ne 124 ] && [ "$code" -ne 0 ]; then
-            echo "Tahoma2D failed to start (exit $code)"
-            exit "$code"
+          set -euo pipefail
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1600x1000x24 >/tmp/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          trap 'kill "$APP_PID" "$XVFB_PID" 2>/dev/null || true' EXIT
+          sleep 2
+          tahoma2d >/tmp/tahoma2d-gui.log 2>&1 &
+          APP_PID=$!
+          for i in $(seq 1 40); do
+            if xdotool search --onlyvisible --name 'Tahoma' >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          xdotool key --clearmodifiers alt+f
+          sleep 1
+          xdotool key --clearmodifiers r
+          sleep 2
+          xdotool key --clearmodifiers ctrl+l
+          xdotool type --clearmodifiers --delay 1 '/tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js'
+          xdotool key Return
+          sleep 12
+          SCENE=/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz
+          if [ ! -s "$SCENE" ]; then
+            xdotool key --clearmodifiers alt+f || true
+            sleep 1
+            xdotool screenshot /tmp/tahoma2d-file-menu.png || true
+            cat /tmp/tahoma2d-gui.log || true
+            echo "Tahoma2D did not save the requested native scene through ToonzScript."
+            exit 1
           fi
-          echo "Tahoma2D GUI process started under Xvfb."
+          mkdir -p /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof
+          tcomposer "$SCENE" -o /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof/frame.png -range 1 1 -multimedia 1 -nthreads 2
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          scene = Path("/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz")
+          frame = Path("/tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof/frame.png")
+          if not scene.is_file() or scene.stat().st_size < 100:
+              raise SystemExit("Native .tnz file missing or empty")
+          with Image.open(frame) as image:
+              image.verify()
+          with Image.open(frame) as image:
+              print("TAHOMA2D_RENDER_PROOF", {"scene_bytes": scene.stat().st_size, "frame_size": image.size, "frame_bytes": frame.stat().st_size})
+              if image.width < 100 or image.height < 100:
+                  raise SystemExit("Rendered frame dimensions are unexpectedly small")
+          PY
       - name: Run adapter tests
         run: |
           python -m unittest discover -s tests -p 'test_tahoma2d_runtime.py' -v
@@ -107,6 +156,15 @@ jobs:
           { echo "Tahoma2D release: v1.6.3"; dpkg -L tahoma2d | grep -E "/(tahoma2d|tcomposer)$" || true; } > engine-report/install-report.txt
           if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/characters ]; then
             cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/characters engine-report/
+          fi
+          if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring ]; then
+            cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring engine-report/
+          fi
+          if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes ]; then
+            cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes engine-report/
+          fi
+          if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof ]; then
+            cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof engine-report/
           fi
       - uses: actions/upload-artifact@v4
         if: always()
