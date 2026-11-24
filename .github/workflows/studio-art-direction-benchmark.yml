@@ -119,7 +119,7 @@ jobs:
       - name: Run engineering quality control and encode
         run: |
           python -m studio.cli qc projects/art-direction-benchmark
-          python -m studio.cli finalize projects/art-direction-benchmark
+          python -m studio.cli encode projects/art-direction-benchmark
       - name: Create visual contact sheet for human review
         run: |
           python - <<'PY'
@@ -147,7 +147,6 @@ jobs:
           path: |
             projects/art-direction-benchmark/renders/episode.mp4
             projects/art-direction-benchmark/production/quality_report.json
-            projects/art-direction-benchmark/production/delivery_manifest.json
-            projects/art-direction-benchmark/production/contact-sheet.jpg
+                        projects/art-direction-benchmark/production/contact-sheet.jpg
           if-no-files-found: error
           retention-days: 14
