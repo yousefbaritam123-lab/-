@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     approve_cmd.add_argument("project", type=Path)
     approve_cmd.add_argument("--reviewer", required=True)
     approve_cmd.add_argument("--notes", required=True)
-    blend_cmd = sub.add_parser("blender-render", help="build and open an optional Blender scene")
+    blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
     args = parser.parse_args(argv)
@@ -272,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
         output = render_with_blender(args.project, blender=args.blender)
-        print(f"Blender scene prepared: {output}")
+        print(f"Blender video rendered: {output}")
         return 0
     return 2
 
