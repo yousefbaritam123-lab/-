@@ -28,7 +28,7 @@ jobs:
       - name: Install Tahoma2D and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
+          sudo apt-get install -y xvfb xdotool x11-utils imagemagick libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
           python -m pip install --upgrade pip pillow
           sudo apt-get install -y /tmp/Tahoma2D-linux-gcc.deb
           dpkg -L tahoma2d | tee /tmp/tahoma2d-files.txt
@@ -115,9 +115,10 @@ jobs:
           cp /tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js "$SCRIPT_DIR/create_native_scene.js"
           xdotool key --clearmodifiers alt+f
           sleep 1
-          xdotool key --clearmodifiers s
+          for i in $(seq 1 17); do xdotool key --clearmodifiers Down; done
+          xdotool key --clearmodifiers Right
           sleep 1
-          xdotool key --clearmodifiers r
+          xdotool key --clearmodifiers Return
           sleep 3
           DIALOG=""
           for i in $(seq 1 15); do
@@ -141,6 +142,7 @@ jobs:
           if [ ! -s "$SCENE" ]; then
             import -window root /tmp/tahoma2d-screen.png || true
             xwininfo -root -tree || true
+            import -window root /tmp/tahoma2d-screen.png || true
             cat /tmp/tahoma2d-gui.log || true
             echo "Tahoma2D did not save the requested native scene through ToonzScript."
             exit 1
@@ -184,6 +186,7 @@ jobs:
           if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof ]; then
             cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof engine-report/
           fi
+          if [ -f /tmp/tahoma2d-screen.png ]; then cp /tmp/tahoma2d-screen.png engine-report/; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
