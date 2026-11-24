@@ -36,6 +36,10 @@ class DirectorTests(unittest.TestCase):
             self.assertEqual(result["shots"][0]["motion_tracks"]["youssef"][0]["action"], "surprised")
             self.assertEqual(result["shots"][0]["motion_tracks"]["adam"][0]["action"], "listen")
             self.assertEqual(result["shots"][-1]["start_seconds"], 90)
+            self.assertEqual(result["shots"][0]["shot_size"], "close_up")
+            self.assertEqual(result["shots"][0]["focus_actor"], "youssef")
+            self.assertEqual(result["shots"][0]["positions"]["youssef"]["x"], 345.6)
+            self.assertEqual(result["shots"][1]["shot_size"], "wide")
             self.assertEqual(result["status"], "director_blocking_pass_needs_screenwriter_and_director_review")
 
 
