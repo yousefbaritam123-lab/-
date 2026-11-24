@@ -17,14 +17,14 @@ BEAT_PERFORMANCES = {
 }
 
 CAMERAS = {
-    "cold_open": {"zoom": 1.08},
-    "setup": {"move": {"from": {"x": 0, "y": 0, "zoom": 1.0}, "to": {"x": -12, "y": 0, "zoom": 1.025}}},
-    "inciting_incident": {"zoom": 1.12},
-    "reaction": {"zoom": 1.06},
-    "escalation": {"move": {"from": {"x": 0, "y": 0, "zoom": 1.0}, "to": {"x": 16, "y": -8, "zoom": 1.08}}},
-    "turning_point": {"zoom": 1.1},
-    "payoff": {"zoom": 1.04},
-    "cliffhanger": {"zoom": 1.14},
+    "cold_open": {"shot_size": "close_up", "zoom": 1.16, "focus": "protagonist"},
+    "setup": {"shot_size": "wide", "move": {"from": {"x": 0, "y": 0, "zoom": 0.96}, "to": {"x": 0, "y": 0, "zoom": 1.0}}},
+    "inciting_incident": {"shot_size": "close_up", "zoom": 1.18, "focus": "protagonist"},
+    "reaction": {"shot_size": "medium", "zoom": 1.08, "focus": "supporting_character"},
+    "escalation": {"shot_size": "dynamic", "move": {"from": {"x": -18, "y": 0, "zoom": 1.0}, "to": {"x": 24, "y": -10, "zoom": 1.12}}},
+    "turning_point": {"shot_size": "close_up", "zoom": 1.17, "focus": "protagonist"},
+    "payoff": {"shot_size": "medium_wide", "zoom": 1.02, "focus": "group"},
+    "cliffhanger": {"shot_size": "close_up", "zoom": 1.2, "focus": "protagonist"},
 }
 
 def _segments(duration: float, first: str, second: str) -> list[dict[str, Any]]:
@@ -51,6 +51,9 @@ def build_storyboard(project_dir: Path, outline_path: Path | None = None) -> Pat
     if not characters:
         raise ValueError("Episode has no characters")
     actor_ids = [item["id"] for item in characters]
+    fmt = episode.get("format", {})
+    frame_width = int(fmt.get("width", 1080))
+    frame_height = int(fmt.get("height", 1920))
     locations = [item.get("id") for item in episode.get("locations", []) if isinstance(item, dict) and item.get("id")]
     default_location = locations[0] if locations else None
     shots = []
@@ -70,6 +73,24 @@ def build_storyboard(project_dir: Path, outline_path: Path | None = None) -> Pat
         # Remaining cast members are staged as listeners; the screenwriter can reassign them.
         for actor_id in actor_ids[2:]:
             tracks[actor_id] = [{"start": 0.0, "end": duration, "action": "listen"}]
+        camera = dict(CAMERAS.get(beat_type, {"shot_size": "medium", "zoom": 1.0}))
+        focus_role = camera.get("focus")
+        focus_actor = actor_ids[0] if focus_role == "protagonist" else (
+            actor_ids[1] if focus_role == "supporting_character" and len(actor_ids) > 1 else None
+        )
+        if focus_actor:
+            focus_index = actor_ids.index(focus_actor)
+            focus_x = frame_width * (0.32 if len(actor_ids) > 1 and focus_index == 0 else
+                                     0.68 if len(actor_ids) > 1 else 0.5)
+            camera["x"] = frame_width * 0.5 - focus_x
+        positions = {
+            actor_id: {
+                "x": frame_width * (0.32 if len(actor_ids) > 1 and actor_index == 0 else
+                                     0.68 if len(actor_ids) > 1 else 0.5),
+                "y": frame_height * 0.78,
+            }
+            for actor_index, actor_id in enumerate(actor_ids)
+        }
         shots.append({
             "id": f"{outline.get('episode_id', 'episode')}-shot-{index:02d}",
             "beat_id": beat.get("id"),
@@ -79,7 +100,12 @@ def build_storyboard(project_dir: Path, outline_path: Path | None = None) -> Pat
             "location": default_location,
             "actors": actor_ids,
             "action": main_first,
-            "camera": CAMERAS.get(beat_type, {"zoom": 1.0}),
+            "camera": camera,
+            "shot_size": camera.get("shot_size", "medium"),
+            "focus_actor": focus_actor or actor_ids[0],
+            "cut_reason": beat.get("writer_instruction", ""),
+            "transition_out": "cut",
+            "positions": positions,
             "motion_tracks": tracks,
             "dialogue": [],
             "editorial_notes": beat.get("writer_instruction", ""),
