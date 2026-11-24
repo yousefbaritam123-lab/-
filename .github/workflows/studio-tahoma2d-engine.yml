@@ -130,7 +130,8 @@ jobs:
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
           # Click the File menu using coordinates relative to the detected Qt window.
-          xdotool windowactivate --sync "$MAIN_WINDOW"
+          # Xvfb has no EWMH window manager; windowactivate fails in this headless session.
+          # The window is already focused above, so keep focus and send input directly.
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
           echo "MAIN_WINDOW geometry: $WIDTH x $HEIGHT at $X,$Y"
           xdotool mousemove --sync --window "$MAIN_WINDOW" 16 10 click 1
