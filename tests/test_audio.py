@@ -13,6 +13,7 @@ class AudioMixTests(unittest.TestCase):
             root = Path(tmp)
             (root / "audio" / "dialogue").mkdir(parents=True)
             (root / "audio" / "dialogue" / "line.wav").write_bytes(b"audio")
+            (root / "audio" / "dialogue" / "music.wav").write_bytes(b"music")
             (root / "episode.json").write_text(json.dumps({
                 "id": "audio-test", "format": {"duration_seconds": 10}
             }), encoding="utf-8")
@@ -21,6 +22,9 @@ class AudioMixTests(unittest.TestCase):
                 "tracks": [{"name": "dialogue", "gain_db": -2, "clips": [{
                     "file": "audio/dialogue/line.wav", "start_seconds": 1.5,
                     "end_seconds": 4.0, "gain_db": 1
+                }]}, {"name": "music", "gain_db": -12, "clips": [{
+                    "file": "audio/dialogue/music.wav", "start_seconds": 0,
+                    "end_seconds": 10
                 }]}]
             }), encoding="utf-8")
             def fake_run(command, **kwargs):
@@ -36,8 +40,10 @@ class AudioMixTests(unittest.TestCase):
             command = run.call_args.args[0]
             self.assertIn("adelay=1500|1500", " ".join(command))
             self.assertIn("loudnorm=I=-16:TP=-1.5:LRA=11", " ".join(command))
+            self.assertIn("sidechaincompress=threshold=0.03", " ".join(command))
             report = json.loads((root / "production" / "audio_mix_report.json").read_text())
-            self.assertEqual(report["clip_count"], 1)
+            self.assertEqual(report["clip_count"], 2)
+            self.assertEqual(report["music_ducking"], "dialogue_sidechain")
             self.assertEqual(report["status"], "mixed")
 
     def test_rejects_paths_outside_project(self):
