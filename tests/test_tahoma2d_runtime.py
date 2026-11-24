@@ -23,7 +23,7 @@ class Tahoma2DRuntimeTests(unittest.TestCase):
             with patch("studio.tahoma2d_runtime.find_tcomposer", return_value="tcomposer"), patch("studio.tahoma2d_runtime.subprocess.run", side_effect=fake_run) as run:
                 self.assertEqual(render_tahoma2d_scene(scene, output, start_frame=1, end_frame=24, threads=2), output)
             command=run.call_args.args[0]
-            self.assertIn("-range", command); self.assertIn("1-24", command)
+            self.assertIn("-range", command); self.assertEqual(command[command.index("-range") + 1:command.index("-range") + 3], ["1", "24"])
             self.assertIn("-multimedia", command)
             self.assertTrue((output.parent/"tahoma2d_render.log").is_file())
     def test_runtime_report_when_missing(self):
