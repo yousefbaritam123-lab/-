@@ -22,10 +22,13 @@ def material(name, color):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = color
     mat.use_nodes = True
-    bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    if bsdf:
-        bsdf.inputs["Base Color"].default_value = color
-        bsdf.inputs["Roughness"].default_value = 1.0
+    nodes = mat.node_tree.nodes
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    emission = nodes.new("ShaderNodeEmission")
+    emission.inputs["Color"].default_value = color
+    emission.inputs["Strength"].default_value = 1.0
+    mat.node_tree.links.new(emission.outputs["Emission"], output.inputs["Surface"])
     return mat
 
 
@@ -136,9 +139,8 @@ def build_character(actor, profile, width, height):
     x = float(actor.get("x", width * 0.5))
     y = float(actor.get("y", height * 0.82))
     root.location = ((x - width * 0.5) / 100.0, (height * 0.5 - y) / 100.0, 0)
-    root.scale = (float(actor.get("scale", 1.0)) * 0.01,
-                  float(actor.get("scale", 1.0)) * 0.01,
-                  float(actor.get("scale", 1.0)) * 0.01)
+    actor_scale = float(actor.get("scale", 1.0))
+    root.scale = (actor_scale, actor_scale, actor_scale)
 
     head_r = float(appearance.get("head_radius", 72)) / 100.0 * float(proportions.get("head", 1))
     make_disc(actor_id + "_head", 0, 1.43, head_r, head_r * 1.08, skin, root, 0.24)
@@ -238,11 +240,19 @@ def main():
     world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.76, 0.84, 0.91, 1)
     world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.8
 
-    # A simple floor and soft lighting establish a readable 2D stage.
-    floor_mat = material("Studio_Floor", (0.25, 0.34, 0.31, 1))
-    bpy.ops.mesh.primitive_plane_add(size=200, location=(0, -height / 200.0 + 0.4, -0.8))
+    # Flat emissive surfaces keep colors stable in headless rendering.
+    first_location = (manifest.get("locations") or [{}])[0]
+    backdrop_mat = material("Studio_Backdrop", rgba(first_location.get("sky_bottom", "#D9E3EA")))
+    bpy.ops.mesh.primitive_plane_add(size=2, location=(0, 0, -1.0))
+    backdrop = bpy.context.object
+    backdrop.name = "Studio_Backdrop"
+    backdrop.scale = (width / 100.0, height / 100.0, 1)
+    backdrop.data.materials.append(backdrop_mat)
+    floor_mat = material("Studio_Floor", rgba(first_location.get("ground", "#647D62")))
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -height / 200.0 + 0.35, -0.55))
     floor = bpy.context.object
     floor.name = "Studio_Floor"
+    floor.scale = (width / 100.0, 0.35, 0.12)
     floor.data.materials.append(floor_mat)
 
     catalog = {}
@@ -269,8 +279,6 @@ def main():
         for actor_id, actor in actors.items():
             root = actor["root"]
             enabled = actor_id in active
-            root.scale = (0.01, 0.01, 0.01) if not enabled else root.scale
-            root.keyframe_insert(data_path="scale", frame=start)
             root.keyframe_insert(data_path="location", frame=start)
             if not enabled:
                 root.scale = (0.00001, 0.00001, 0.00001)
@@ -278,8 +286,12 @@ def main():
                 root.keyframe_insert(data_path="scale", frame=end)
                 continue
             pos = positions.get(actor_id, {})
-            px = float(pos.get("x", next((c.get("x", width * 0.5) for c in manifest["characters"] if c["id"] == actor_id), width * 0.5)))
-            py = float(pos.get("y", next((c.get("y", height * 0.82) for c in manifest["characters"] if c["id"] == actor_id), height * 0.82)))
+            source_actor = next(c for c in manifest["characters"] if c["id"] == actor_id)
+            px = float(pos.get("x", source_actor.get("x", width * 0.5)))
+            py = float(pos.get("y", source_actor.get("y", height * 0.82)))
+            actor_scale = float(pos.get("scale", source_actor.get("scale", 1.0)))
+            root.scale = (actor_scale, actor_scale, actor_scale)
+            root.keyframe_insert(data_path="scale", frame=start)
             root.location = ((px - width * 0.5) / 100.0, (height * 0.5 - py) / 100.0, 0)
             root.keyframe_insert(data_path="location", frame=start)
             root.keyframe_insert(data_path="location", frame=end)
@@ -298,7 +310,6 @@ def main():
     # Hold the final frame for actors that appear in the last shot.
     scene.frame_set(1)
     output = Path(manifest["output_root"])
-    (output / "frames").mkdir(parents=True, exist_ok=True)
     (output / "frames").mkdir(parents=True, exist_ok=True)
     scene.render.filepath = str(output / "frames" / "frame_")
     bpy.ops.render.render(animation=True)
