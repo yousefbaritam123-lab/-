@@ -84,6 +84,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             key: value for key, value in group.attrib.items() if key != "id"
         })
         elements = []
+        articulated_parts = []
         source_children = list(group)
         for element_index, child in enumerate(source_children):
             tag = child.tag.rsplit("}", 1)[-1]
@@ -113,6 +114,27 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             layer = ET.SubElement(inner, _tag("g"), {"id": layer_id, "data-role": role})
             copied = ET.fromstring(ET.tostring(child, encoding="unicode"))
             layer.append(copied)
+            # Existing paired SVG subpaths can be exported independently without altering the source layer.
+            d = child.get("d", "") if tag == "path" else ""
+            subpaths = [part.strip() for part in re.split(r"(?=M\\s)", d.strip()) if part.strip()]
+            if tag == "path" and len(subpaths) == 2:
+                fill = child.get("fill", "")
+                stroke_width = child.get("stroke-width", "")
+                if fill == "none" and stroke_width in {"8", "4"}:
+                    kind = "arm_outline" if stroke_width == "8" else "arm_skin"
+                    for subpath in subpaths:
+                        first = re.match(r"M\\s*(-?\\d+(?:\\.\\d+)?)", subpath)
+                        side = "L" if first and float(first.group(1)) < (100 + column * 200) else "R"
+                        part = ET.Element(_tag("path"), dict(child.attrib))
+                        part.set("d", subpath)
+                        articulated_parts.append((f"{kind}_{side}", part))
+                elif fill != "none" and stroke_width == "4":
+                    for subpath in subpaths:
+                        first = re.match(r"M\\s*(-?\\d+(?:\\.\\d+)?)", subpath)
+                        side = "L" if first and float(first.group(1)) < (100 + column * 200) else "R"
+                        part = ET.Element(_tag("path"), dict(child.attrib))
+                        part.set("d", subpath)
+                        articulated_parts.append((f"foot_{side}", part))
             elements.append({
                 "layer_id": layer_id, "role": role,
                 "source_order": element_index, "source_tag": tag,
