@@ -5,7 +5,7 @@
 - studio.image_character: prepares a transparent cutout and pose-landmark guide from a reference image. Optional extras: rembg + onnxruntime for background removal; mediapipe + opencv-python for pose landmarks. A flat picture is not a complete articulated puppet: limb layers, hidden pixels, pivots, hands and face controls still need manual review and painting.
 - studio.lipsync: runs the external Rhubarb Lip Sync executable and converts mouth cues to the renderer's viseme names. It requires real dialogue audio. Missing Rhubarb causes a clear error instead of invented mouth motion.
 - studio.story: creates an episode beat outline from persistent continuity. It does not advance continuity or claim to write polished Algerian dialogue autonomously.
-- studio.blender_bridge + tools/blender_scene.py: optional Blender background-mode bridge. Blender is installed separately, not with pip. The bridge currently creates a 2D scene, camera, timeline, project file and optional image-reference planes. Full layered puppet rig import, Grease Pencil authoring and shot-level Blender animation remain a next milestone.
+- studio.blender_bridge + tools/blender_scene.py: optional Blender background-mode renderer. It builds procedural 2D puppet characters, location sets, a camera, shot staging, action keyframes, facial expressions and Rhubarb-driven mouth cues, then renders PNG frames and encodes MP4. Blender is installed separately, not with pip. Elbow/knee pivots and simple finger silhouettes are now animated; this is still a procedural 2D rig, not a full deforming character rig or production motion-capture system.
 
 ## Suggested local setup
 
@@ -24,4 +24,4 @@ External tools: install Blender 4.x and add blender.exe to PATH; install Rhubarb
 
 ## Honest current status
 
-These adapters and planners are foundations, not proof of a finished professional pipeline. The 100-second 1080x1920 output remains an end-to-end acceptance test. The Blender bridge has a rigid layered-puppet import path, but does not yet generate final animated shots from the episode timeline.
+These adapters and planners are foundations, not proof of a finished professional pipeline. The Blender backend now generates animated procedural 2D shots from the episode timeline, but the full 100-second 1080x1920 output remains an end-to-end acceptance test. Blender integration CI must complete and its rendered frames must be visually inspected before this backend is treated as accepted.
