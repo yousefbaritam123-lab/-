@@ -83,9 +83,30 @@ def make_limb(name, pivot, length, mat, thickness, direction=-1):
     return line, joint
 
 
-def set_pose(actor, action, frame):
+def set_pose(actor, action, frame, end_frame=None, fps=30):
     arms = actor["arms"]
     legs = actor["legs"]
+    end_frame = max(frame, int(end_frame if end_frame is not None else frame))
+    if action in ("walk", "run"):
+        period = 0.80 if action == "walk" else 0.48
+        step = max(1, round(fps * period / 8))
+        frames = list(range(frame, end_frame + 1, step))
+        if not frames or frames[-1] != end_frame:
+            frames.append(end_frame)
+        for key, pivot in arms.items():
+            phase = 0.0 if key.endswith("L") else math.pi
+            for current in frames:
+                elapsed = (current - frame) / fps
+                pivot.rotation_euler[2] = math.radians(18) * math.sin(2 * math.pi * elapsed / period + phase)
+                pivot.keyframe_insert(data_path="rotation_euler", frame=current)
+        for key, pivot in legs.items():
+            phase = 0.0 if key.endswith("L") else math.pi
+            for current in frames:
+                elapsed = (current - frame) / fps
+                pivot.rotation_euler[2] = math.radians(24) * math.sin(2 * math.pi * elapsed / period + phase)
+                pivot.keyframe_insert(data_path="rotation_euler", frame=current)
+        return
+
     for key, pivot in arms.items():
         angle = 0.0
         if action in ("wave", "greet"):
@@ -101,22 +122,18 @@ def set_pose(actor, action, frame):
         pivot.rotation_euler[2] = angle
         pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
         if action in ("wave", "greet") and key.endswith("R"):
-            pivot.rotation_euler[2] = angle + math.radians(24)
-            pivot.keyframe_insert(data_path="rotation_euler", frame=frame + 8)
-            pivot.rotation_euler[2] = angle - math.radians(18)
-            pivot.keyframe_insert(data_path="rotation_euler", frame=frame + 16)
-            pivot.rotation_euler[2] = angle
-            pivot.keyframe_insert(data_path="rotation_euler", frame=frame + 24)
+            wave_step = max(1, round(fps * 0.12))
+            frames = list(range(frame, end_frame + 1, wave_step))
+            if not frames or frames[-1] != end_frame:
+                frames.append(end_frame)
+            for current in frames:
+                elapsed = (current - frame) / fps
+                pivot.rotation_euler[2] = angle + math.radians(24) * math.sin(2 * math.pi * elapsed / 0.48)
+                pivot.keyframe_insert(data_path="rotation_euler", frame=current)
     for key, pivot in legs.items():
-        angle = 0.0
-        if action in ("walk", "run"):
-            angle = math.radians(18 if key.endswith("L") else -18)
-        elif action in ("kick",):
-            angle = math.radians(-52 if key.endswith("L") else 52)
+        angle = math.radians(-52 if key.endswith("L") else 52) if action == "kick" else 0.0
         pivot.rotation_euler[2] = angle
         pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
-
-
 
 
 def set_face(actor, action, frame):
@@ -374,19 +391,29 @@ def main():
             root.scale = (actor_scale, actor_scale, actor_scale)
             root.keyframe_insert(data_path="scale", frame=start)
             root.location = ((px - width * 0.5) / 100.0, (height * 0.5 - py) / 100.0, 0)
-            root.keyframe_insert(data_path="location", frame=start)
-            root.keyframe_insert(data_path="location", frame=end)
+            movement = shot.get("movement", {}).get(actor_id)
+            if movement:
+                from_x = float(movement.get("from_x", px))
+                to_x = float(movement.get("to_x", px))
+                root.location.x = (from_x - width * 0.5) / 100.0
+                root.keyframe_insert(data_path="location", frame=start)
+                root.location.x = (to_x - width * 0.5) / 100.0
+                root.keyframe_insert(data_path="location", frame=end)
+            else:
+                root.keyframe_insert(data_path="location", frame=start)
+                root.keyframe_insert(data_path="location", frame=end)
             track = tracks.get(actor_id, [])
             if track:
                 for segment in track:
                     action_frame = start + max(0, round(float(segment.get("start", 0)) * fps))
                     action_frame = min(action_frame, end)
                     action = segment.get("action", "idle")
-                    set_pose(actor, action, action_frame)
+                    segment_end = min(end, start + max(0, round(float(segment.get("end", duration)) * fps)) - 1)
+                    set_pose(actor, action, action_frame, segment_end, fps)
                     set_face(actor, action, action_frame)
             else:
                 action = shot.get("action", "idle")
-                set_pose(actor, action, start)
+                set_pose(actor, action, start, end, fps)
                 set_face(actor, action, start)
             # Apply Rhubarb-derived cues when dialogue lines carry viseme data.
             for line in shot.get("dialogue", []):
