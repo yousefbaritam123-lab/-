@@ -130,15 +130,15 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Open File through a window-relative click. This avoids assuming the
-          # Xvfb window's absolute position or relying on an Alt-key mnemonic.
+          # Open the File menu by its measured position in the borderless
+          # Xvfb window. Alt+F is unreliable in this Qt build and can leave
+          # only the menu bar visible (the old OCR step then searched nothing).
           xdotool windowfocus --sync "$MAIN_WINDOW"
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
           export WINDOW_X="$X" WINDOW_Y="$Y"
-          # Qt exposes File through the standard Alt+F mnemonic. Use the
-          # focused application keyboard path to avoid window-frame coordinate offsets.
-          xdotool key --clearmodifiers alt+f
+          xdotool mousemove "$((X+168))" "$((Y+68))" click 1
           sleep 1
+          import -window root /tmp/tahoma2d-file-menu-open.png
           import -window root /tmp/tahoma2d-file-menu-open.png
           convert /tmp/tahoma2d-file-menu-open.png -crop "760x820+$X+$Y" +repage -resize 200% /tmp/tahoma2d-file-menu-crop.png
           tesseract /tmp/tahoma2d-file-menu-crop.png stdout --psm 6 > /tmp/tahoma2d-file-menu.txt
