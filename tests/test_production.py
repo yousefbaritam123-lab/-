@@ -85,6 +85,34 @@ class IterativeProductionTests(unittest.TestCase):
             self.assertIn("simulated temporary render crash", report["rounds"][0]["render_error"])
             self.assertEqual(report["final_frame_audit"]["verified_frames"], 60)
 
+    def test_invalid_audio_is_rebuilt_from_existing_mix_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self.make_project(tmp)
+            (project / "audio" / "final_mix.wav").write_bytes(b"corrupt")
+            (project / "production" / "audio_mix.json").write_text(
+                json.dumps({"tracks": [{"name": "music", "clips": []}]}), encoding="utf-8"
+            )
+            output = project / "renders" / "episode.mp4"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"video")
+
+            def rebuild(project_dir, config_path=None):
+                import wave
+                with wave.open(str(project_dir / "audio" / "final_mix.wav"), "wb") as audio:
+                    audio.setnchannels(2)
+                    audio.setsampwidth(3)
+                    audio.setframerate(48000)
+                    audio.writeframes(b"\\x00" * (48000 * 2 * 6))
+                return project_dir / "audio" / "final_mix.wav"
+
+            with patch("studio.production.render_episode_frames", side_effect=self.fake_render):
+                with patch("studio.audio.mix_episode_audio", side_effect=rebuild):
+                    with patch("studio.production.certify_delivery", return_value=output):
+                        report = run_production(project)
+
+            self.assertEqual(report["status"], "delivered")
+            self.assertEqual(report["audio_repair"]["status"], "repaired")
+
     def test_missing_audio_or_visual_signoff_blocks_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = self.make_project(tmp)
