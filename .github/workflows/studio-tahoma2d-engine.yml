@@ -140,7 +140,7 @@ jobs:
           python - <<'PY'
           import csv
           from pathlib import Path
-          rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\\t"))
+          rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\t"))
           tokens = [r for r in rows if r.get("text", "").strip()]
           match = None
           for i in range(len(tokens)):
@@ -157,7 +157,7 @@ jobs:
           bottom = max(int(x["top"])+int(x["height"]) for x in match)
           print("SCRIPT_CONSOLE_MENU_BOUNDS", left, top, right, bottom)
           Path("/tmp/tahoma2d-console-menu-click.txt").write_text(
-              f"{(left+right)//2} {(top+bottom)//2}\\n", encoding="utf-8")
+              f"{(left+right)//2} {(top+bottom)//2}\n", encoding="utf-8")
           PY
           read MENU_X MENU_Y < /tmp/tahoma2d-console-menu-click.txt
           xdotool mousemove "$MENU_X" "$MENU_Y" click 1
