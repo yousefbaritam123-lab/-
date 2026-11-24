@@ -33,6 +33,29 @@ class Tahoma2DRuntimeTests(unittest.TestCase):
             self.assertEqual(env["TAHOMA2DPROFILES"], str(stuff / "profiles"))
             self.assertEqual(env["TAHOMA2DPROJECTS"], str(stuff / "projects"))
 
+    def test_creates_missing_linux_system_var_without_overwriting_existing(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            app = Path(tmp) / "Tahoma2D"
+            binary = app / "usr" / "bin" / "tcomposer"
+            stuff = app / "tahomastuff"
+            binary.parent.mkdir(parents=True)
+            binary.write_text("")
+            (stuff / "profiles").mkdir(parents=True)
+            config_home = Path(tmp) / "config"
+            with patch.dict(os.environ, {"HOME": tmp, "XDG_CONFIG_HOME": str(config_home)}), patch(
+                "studio.tahoma2d_runtime.shutil.which", return_value=None
+            ):
+                _tahoma_environment(str(binary))
+            ini = config_home / "Tahoma2D" / "SystemVar.ini"
+            self.assertIn(f'TAHOMA2DROOT="{stuff}"', ini.read_text(encoding="utf-8"))
+            ini.write_text("[General]\\nKEEP=1\\n", encoding="utf-8")
+            with patch.dict(os.environ, {"HOME": tmp, "XDG_CONFIG_HOME": str(config_home)}), patch(
+                "studio.tahoma2d_runtime.shutil.which", return_value=None
+            ):
+                _tahoma_environment(str(binary))
+            self.assertEqual(ini.read_text(encoding="utf-8"), "[General]\\nKEEP=1\\n")
+
     def test_invokes_batch_renderer_and_checks_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             scene = Path(tmp) / "scene.tnz"
