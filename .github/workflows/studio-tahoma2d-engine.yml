@@ -113,6 +113,21 @@ jobs:
           SCRIPT_DIR="$HOME/.local/share/Tahoma2D/library/scripts"
           mkdir -p "$SCRIPT_DIR"
           cp /tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js "$SCRIPT_DIR/create_native_scene.js"
+          sleep 4
+          for title in 'Tahoma2D Tips' 'Tahoma2D Startup'; do
+            for window in $(xdotool search --onlyvisible --name "$title" 2>/dev/null || true); do
+              xdotool windowclose "$window" || true
+              sleep 1
+            done
+          done
+          MAIN_WINDOW=$(xdotool search --onlyvisible --name 'Tahoma2D 1.6.3' 2>/dev/null | head -1 || true)
+          if [ -z "$MAIN_WINDOW" ]; then
+            xwininfo -root -tree || true
+            echo "Tahoma2D main window was not available after dismissing first-run panels."
+            exit 1
+          fi
+          xdotool windowfocus "$MAIN_WINDOW"
+          sleep 1
           xdotool key --clearmodifiers alt+f
           sleep 1
           for i in $(seq 1 17); do xdotool key --clearmodifiers Down; done
