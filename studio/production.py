@@ -92,6 +92,12 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
     started = time.monotonic()
     episode = read_json(project_dir / "episode.json")
     errors = validate_episode(project_dir) + validate_continuity(project_dir, episode)
+    try:
+        from .script_qc import audit_dialogue
+        script_report = audit_dialogue(project_dir)
+        errors.extend(script_report.get("errors", []))
+    except Exception as exc:
+        errors.append(f"Script QA failed: {exc}")
     if errors:
         report = {"status": "blocked", "phase": "preflight", "errors": errors, "rounds": []}
         _write_json(project_dir / "production" / "production_run.json", report)
@@ -164,6 +170,7 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
         "status": status,
         "delivery_allowed": not hard_errors,
         "quality_policy": {
+            "dialogue_timing_and_speaker_validation": True,
             "all_frames_must_decode": True,
             "all_frames_must_match_dimensions": True,
             "no_blank_frames": True,
