@@ -29,14 +29,28 @@ pelvis, hips, knees and ankles. It defines parent-child bone links for the
 head, torso, arms and legs. These are initial 2D pivot coordinates in the
 200×220 character-cell coordinate space, not a claim of validated motion.
 
-A companion `*.rig_layers.svg` exports existing paired arm outline/skin
-subpaths as left/right layers and paired foot subpaths as left/right layers.
+A companion `*.rig_layers.svg` now exports each original arm as four segments per
+side: upper-arm outline/skin and forearm outline/skin, split exactly at the
+elbow vertex already present in the source `M/L` path. The source line widths,
+colors and round caps are retained. The left/right arm endpoints are also used
+to derive shoulder, elbow and wrist coordinates for each character. Paired foot
+subpaths are exported when present.
 The original full paths remain intact in the main extracted SVG; the new
 articulation file is an additional derivative and does not overwrite source
 artwork.
 
-**Still incomplete:** arm upper/lower segments are not yet independently
-separated at the elbow; the connected lower-body silhouette is not yet split
-into thighs and shins; hands/fingers are not independently drawn; no pivot
-animation has yet been visually validated. Until those are solved and tested,
-these are joint maps and partial source layers—not a finished production rig.
+## Blender source-art integration
+
+`studio.blender_bridge` prepares the extracted cast automatically when a Blender
+render includes `cast_id` values such as `extra_001`. The Blender scene imports
+the resulting per-character SVG as curve artwork and groups it under the actor
+transform. This is the original character drawing, not the procedural puppet
+replacement. The current integration animates the imported drawing as a whole;
+per-limb pivots are not yet connected to the Blender scene.
+
+**Still incomplete:** the combined lower-body silhouette is preserved and has
+hip/knee landmarks, but is not yet separated into independently moving thighs
+and shins. Hands/fingers are not independently drawn. The 60-character Blender
+workflow must complete and its rendered frames must be visually inspected
+before calling the rig production-ready. Named Youssef/Adam design sheets are
+not yet wired through this cast-60 importer and still use the legacy builder.
