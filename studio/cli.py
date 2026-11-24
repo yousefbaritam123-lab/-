@@ -38,6 +38,15 @@ TEMPLATE = {
     ]
 }
 
+VOICE_CAST_TEMPLATE = {
+    "default_voice": "default",
+    "voices": {
+        "default": {
+            "model": "assets/voices/add-arabic-piper-model.onnx"
+        }
+    }
+}
+
 AUDIO_MIX_TEMPLATE = {
     "tracks": [
         {"name": "dialogue", "gain_db": 0, "clips": [
@@ -55,7 +64,7 @@ AUDIO_MIX_TEMPLATE = {
 
 def init_project(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    for folder in ("assets/characters", "assets/locations", "audio/dialogue", "audio/music", "audio/ambience", "audio/fx", "renders", "production", "continuity", "subtitles"):
+    for folder in ("assets/characters", "assets/locations", "assets/voices", "audio/dialogue", "audio/music", "audio/ambience", "audio/fx", "renders", "production", "continuity", "subtitles"):
         (path / folder).mkdir(parents=True, exist_ok=True)
     bundled_assets = Path(__file__).resolve().parent.parent / "assets"
     if bundled_assets.is_dir():
@@ -63,6 +72,9 @@ def init_project(path: Path) -> None:
     episode_file = path / "episode.json"
     if not episode_file.exists():
         episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    voice_template = path / "production" / "voice_cast.template.json"
+    if not voice_template.exists():
+        voice_template.write_text(json.dumps(VOICE_CAST_TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     mix_template = path / "production" / "audio_mix.template.json"
     if not mix_template.exists():
         mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
