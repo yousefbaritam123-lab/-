@@ -71,6 +71,9 @@ def doctor() -> int:
         "Node.js": shutil.which("node") is not None,
         "pnpm": shutil.which("pnpm") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
+        "Blender (optional 2D backend)": shutil.which("blender") is not None,
+        "OpenTimelineIO (optional editorial)": _module_available("opentimelineio"),
+        "OpenCV (optional vision)": _module_available("cv2"),
     }
     for label, ok in checks.items():
         suffix = "OK" if ok else ("OPTIONAL / NOT FOUND" if "optional" in label else "NOT FOUND")
@@ -153,6 +156,14 @@ def main(argv: list[str] | None = None) -> int:
     approve_cmd.add_argument("project", type=Path)
     approve_cmd.add_argument("--reviewer", required=True)
     approve_cmd.add_argument("--notes", required=True)
+    audio_cmd = sub.add_parser("audio-mix", help="mix timed dialogue, music, ambience and effects into final_mix.wav")
+    audio_cmd.add_argument("project", type=Path)
+    audio_cmd.add_argument("--config", type=Path, help="mix plan JSON; default production/audio_mix.json")
+    subtitles_cmd = sub.add_parser("subtitles", help="export timed dialogue captions as Arabic-compatible SRT")
+    subtitles_cmd.add_argument("project", type=Path)
+    subtitles_cmd.add_argument("--include-speaker", action="store_true")
+    edit_cmd = sub.add_parser("edit-plan", help="export shot timing and optional OpenTimelineIO timeline")
+    edit_cmd.add_argument("project", type=Path)
     blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
@@ -268,6 +279,21 @@ def main(argv: list[str] | None = None) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("Visual approval recorded: " + str(target))
+        return 0
+    if args.command == "audio-mix":
+        from .audio import mix_episode_audio
+        output = mix_episode_audio(args.project, config_path=args.config)
+        print(f"Final audio mix created: {output}")
+        return 0
+    if args.command == "subtitles":
+        from .editorial import build_subtitles
+        output = build_subtitles(args.project, include_speaker=args.include_speaker)
+        print(f"Subtitles exported: {output}")
+        return 0
+    if args.command == "edit-plan":
+        from .editorial import export_edit_plan
+        output = export_edit_plan(args.project)
+        print(f"Editorial plan exported: {output}")
         return 0
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
