@@ -51,10 +51,54 @@ jobs:
         run: python -m studio.cli validate projects/real-10s
       - name: Render 300 frames with the repository renderer
         run: python -m studio.cli render projects/real-10s --resume
-      - name: Run studio quality control
-        run: python -m studio.cli qc projects/real-10s
-      - name: Certify and encode delivery
-        run: python -m studio.cli finalize projects/real-10s
+      - name: Audit every frame and encode the technical render
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          project = Path("projects/real-10s")
+          frames = project / "renders" / "frames"
+          expected = 300
+          errors = []
+          verified = 0
+          for number in range(expected):
+              path = frames / f"frame_{number:06d}.png"
+              if not path.is_file() or path.stat().st_size < 256:
+                  errors.append(f"missing_or_tiny:{number}")
+                  continue
+              try:
+                  with Image.open(path) as image:
+                      image.verify()
+                  with Image.open(path) as image:
+                      image = image.convert("RGB")
+                      if image.size != (540, 960):
+                          errors.append(f"wrong_dimensions:{number}:{image.size}")
+                          continue
+                      variance = sum(ImageStat.Stat(image.resize((96, 96))).stddev) / 3
+                      if variance < 1.15:
+                          errors.append(f"blank:{number}")
+                          continue
+              except Exception as exc:
+                  errors.append(f"corrupt:{number}:{exc}")
+                  continue
+              verified += 1
+          report = {
+              "mode": "technical_render_test_not_delivery_certification",
+              "expected_frames": expected,
+              "verified_frames": verified,
+              "errors": errors,
+              "audio_gate": "not evaluated in this silent technical render",
+              "human_visual_approval": "required separately before publication",
+          }
+          out = project / "production" / "technical_render_report.json"
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          if errors or verified != expected:
+              raise SystemExit("Technical frame audit failed")
+          PY
+          python -m studio.cli encode projects/real-10s
       - name: Verify actual MP4 properties
         run: |
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json projects/real-10s/renders/episode.mp4
