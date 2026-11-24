@@ -71,6 +71,21 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             self.assertIn("arm_skin_R", ids)
             self.assertFalse(rig["source_artwork_changed"])
 
+    def test_real_repository_cast_extracts_all_60_with_joint_maps(self):
+        repository = Path(__file__).resolve().parents[1]
+        source = repository / "assets" / "characters" / "cast_60" / "contact_sheet.svg"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "prepared"
+            manifest_path = prepare_svg_cast(source, output)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["character_count"], 60)
+            for index in (1, 6, 60):
+                character_id = f"extra_{index:03d}"
+                rig = json.loads((output / f"{character_id}.rig.json").read_text(encoding="utf-8"))
+                self.assertEqual(len(rig["joints"]), 15)
+                self.assertTrue((output / f"{character_id}.rig_layers.svg").is_file())
+                self.assertTrue((output / f"{character_id}.svg").is_file())
+
     def test_rejects_wrong_cast_count(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
