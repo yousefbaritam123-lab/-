@@ -78,3 +78,18 @@ Do not describe the system as a fully autonomous professional studio until the a
 - Art-direction benchmark: 360/360 frames decoded without errors; H.264, 540x960, 30 fps, 12 seconds. The contact sheet was inspected: the cast and backgrounds read clearly, but the motion still needs more varied acting and transitions. [Run 45334870856](https://github.com/yousefbaritam123-lab/-/actions/runs/45334870856).
 - Blender smoke test on the preceding code revision passed: 60/60 frames, H.264, 360x640, 30 fps, 2 seconds. Visual inspection revealed overlapping heads in a two-character portrait shot and weak hair visibility. Automatic multi-actor scale and hair-layer visibility fixes were committed afterward; the newest Blender integration run `45334870821` is still pending, so those fixes are not yet accepted.
 - Keep the Skia renderer as the quality reference for now. The Blender backend is an additional real render path, not yet a replacement for the visually stronger Skia output.
+
+
+## Technical correction subsystem — 2026-11-24
+
+The production coordinator now contains a bounded technical repair loop:
+
+- Each rendered frame is decoded and dimension-checked immediately; failed frame writes are removed and retried up to three total attempts.
+- Resume skips only PNGs that decode and match the configured dimensions.
+- If a render exception escapes the renderer, the production coordinator records it, audits the output, removes defective frame files, and resumes repair rounds rather than terminating immediately.
+- Blank/near-blank, missing, corrupt and wrong-size frames are removed and regenerated. Any remaining defect blocks delivery.
+- Invalid/missing audio can be rebuilt automatically when a valid generated or authored audio mix plan exists. The final WAV is checked for stereo, 48 kHz, 24-bit PCM, complete payload and matching duration.
+- MP4 encoding validates all PNG inputs, writes to a temporary file, retries once using a safer preset, fully decodes the result and only then publishes the final file.
+- Repair attempts and their outcomes are recorded in `production/production_run.json`.
+
+The latest Python CI run for commit `1110247` is pending. A previous test run exposed a faulty retry-test mock; the test was corrected to invoke the actual renderer after the simulated transient fault. Do not claim this latest repair implementation is accepted until CI completes. Artistic review and human sign-off remain separate gates.
