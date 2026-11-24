@@ -20,3 +20,23 @@ does **not** claim that these assets are fully rigged or ready for joint
 animation. The next stage must map and, where needed, split compound paths
 without changing their rendered appearance, then add pivots and validate
 poses against the original source.
+
+## Joint-map and articulation preparation
+
+The extraction now also writes one `*.rig.json` file per character with a
+15-point skeleton landmark map: head, neck, both shoulders, elbows, wrists,
+pelvis, hips, knees and ankles. It defines parent-child bone links for the
+head, torso, arms and legs. These are initial 2D pivot coordinates in the
+200×220 character-cell coordinate space, not a claim of validated motion.
+
+A companion `*.rig_layers.svg` exports existing paired arm outline/skin
+subpaths as left/right layers and paired foot subpaths as left/right layers.
+The original full paths remain intact in the main extracted SVG; the new
+articulation file is an additional derivative and does not overwrite source
+artwork.
+
+**Still incomplete:** arm upper/lower segments are not yet independently
+separated at the elbow; the connected lower-body silhouette is not yet split
+into thighs and shins; hands/fingers are not independently drawn; no pivot
+animation has yet been visually validated. Until those are solved and tested,
+these are joint maps and partial source layers—not a finished production rig.
