@@ -69,6 +69,14 @@ jobs:
                   "vector_layers_exported_plastic_skeleton_not_yet_authored",
               }:
                   raise SystemExit(f"Unexpected rigging status for {character}")
+              layer_ids = {item["id"] for item in manifest.get("layers", [])}
+              required = {"upper_arm_L", "forearm_L", "upper_arm_R", "forearm_R",
+                          "thigh_L", "shin_L", "thigh_R", "shin_R", "torso_centerline", "head"}
+              missing = required - layer_ids
+              if missing:
+                  raise SystemExit(f"{character} is missing articulated source layers: {sorted(missing)}")
+              if manifest.get("layer_count", 0) < 14 or not (folder / "rig_layers.svg").is_file():
+                  raise SystemExit(f"{character} segmented vector package is incomplete")
           print("YOUSEFF_ADAM_SOURCE_ART_PREPARED")
           PY
       - name: Confirm native scene render is gated on a real authored project
@@ -90,6 +98,8 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_tahoma2d_runtime.py' -v
           python -m unittest discover -s tests -p 'test_tahoma2d_bridge.py' -v
+          python -m unittest discover -s tests -p 'test_tahoma2d_cli.py' -v
+          python -m unittest discover -s tests -p 'test_svg_character_assets.py' -v
       - name: Save engine installation report
         if: always()
         run: |
