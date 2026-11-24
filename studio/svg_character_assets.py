@@ -248,6 +248,21 @@ def prepare_named_character_layers(
     combined = output_dir / "rig_layers.svg"
     make_svg(layers, combined)
 
+    known_gaps = [
+        "No native Tahoma2D Plastic mesh or skeleton has been authored.",
+        "The source character uses simple stroke limbs; it does not contain separately drawn fingers or deformable hand artwork.",
+        "Head, face and costume shapes are preserved as source vector levels; expression variants are not generated.",
+        "The current model sheets are simplified vector character designs, not fully detailed production paintings.",
+    ]
+    if character_id == "youssef":
+        known_gaps.append(
+            "The Youssef model sheet contains the red scarf and simple body strokes but no authored shirt/trouser silhouette; colors in character.toon.json are renderer metadata, not missing SVG artwork."
+        )
+    elif character_id == "adam":
+        known_gaps.append(
+            "The Adam model sheet contains a blue torso shape, but sleeves, hands and fingers are not independently illustrated."
+        )
+
     manifest = {
         "schema_version": 1,
         "character_id": character_id,
@@ -265,11 +280,7 @@ def prepare_named_character_layers(
         "joints": joints,
         "bones": bones,
         "rigging_status": "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored",
-        "known_gaps": [
-            "No native Tahoma2D Plastic mesh or skeleton has been authored.",
-            "The source character uses simple stroke limbs; it does not contain separately drawn fingers or deformable hand artwork.",
-            "Head, face, scarf and clothing shapes are preserved as source vector levels; expression variants are not generated.",
-        ],
+        "known_gaps": known_gaps,
     }
     manifest_path = output_dir / "named_character_manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
