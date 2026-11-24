@@ -130,40 +130,90 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Use the documented Script Console, not the flaky Run Script file picker.
-          # The app window is offset in the Xvfb desktop; click the visible File menu
-          # and use OCR coordinates to select the exact documented menu item.
-          xdotool mousemove 168 68 click 1
+          # Open the documented File menu with its keyboard mnemonic. A fixed
+          # screen-coordinate click is unreliable under Xvfb/window decorations.
+          xdotool key --clearmodifiers alt+f
           sleep 1
           import -window root /tmp/tahoma2d-file-menu-open.png
-          tesseract /tmp/tahoma2d-file-menu-open.png stdout tsv > /tmp/tahoma2d-file-menu.tsv
+          tesseract /tmp/tahoma2d-file-menu-open.png stdout --psm 11 > /tmp/tahoma2d-file-menu.txt
           python - <<'PY'
-          import csv
+          import re
           from pathlib import Path
-          rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\t"))
-          tokens = [r for r in rows if r.get("text", "").strip()]
+          text = Path("/tmp/tahoma2d-file-menu.txt").read_text(encoding="utf-8", errors="replace")
+          normalized = re.sub(r"[^a-z]+", " ", text.lower())
+          if "open script console" not in normalized:
+              # Some Tahoma/Toonz builds nest the command under File > Script.
+              # Use the OCR position of the Script submenu, then inspect it.
+              import csv
+              import subprocess
+              subprocess.run(
+                  ["tesseract", "/tmp/tahoma2d-file-menu-open.png", "stdout", "tsv", "--psm", "11"],
+                  check=True, stdout=Path("/tmp/tahoma2d-file-menu.tsv").open("w", encoding="utf-8")
+              )
+              rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\\t"))
+              candidates = [r for r in rows if r.get("text", "").strip().lower() == "script"
+                            and int(float(r.get("conf", "-1"))) >= 20]
+              if not candidates:
+                  print("File menu OCR:", text)
+                  raise SystemExit("File menu opened, but neither Open Script Console nor Script submenu was found")
+              item = max(candidates, key=lambda r: int(r["width"]) * int(r["height"]))
+              x = int(item["left"]) + int(item["width"]) // 2
+              y = int(item["top"]) + int(item["height"]) // 2
+              subprocess.run(["xdotool", "mousemove", str(x), str(y), "click", "1"], check=True)
+              import time
+              time.sleep(1)
+              subprocess.run(["import", "-window", "root", "/tmp/tahoma2d-script-submenu.png"], check=True)
+              subprocess.run(
+                  ["tesseract", "/tmp/tahoma2d-script-submenu.png", "stdout", "--psm", "11"],
+                  check=True, stdout=Path("/tmp/tahoma2d-script-submenu.txt").open("w", encoding="utf-8")
+              )
+              text = Path("/tmp/tahoma2d-script-submenu.txt").read_text(encoding="utf-8", errors="replace")
+              normalized = re.sub(r"[^a-z]+", " ", text.lower())
+          if "open script console" not in normalized:
+              print("Menu OCR:", text)
+              raise SystemExit("Could not locate Open Script Console in the opened Tahoma2D menus")
+          import csv
+          import subprocess
+          subprocess.run(
+              ["tesseract", "/tmp/tahoma2d-file-menu-open.png", "stdout", "tsv", "--psm", "11"],
+              check=True, stdout=Path("/tmp/tahoma2d-menu-final.tsv").open("w", encoding="utf-8")
+          )
+          rows = list(csv.DictReader(Path("/tmp/tahoma2d-menu-final.tsv").open(), delimiter="\\t"))
+          words = [r for r in rows if r.get("text", "").strip()]
           match = None
-          for i in range(len(tokens)):
-              phrase = " ".join(x["text"].strip() for x in tokens[i:i+5]).lower()
+          for i in range(len(words)):
+              phrase = " ".join(x["text"].strip() for x in words[i:i+6]).lower()
               if "open script console" in phrase:
-                  match = tokens[i:i+5]
+                  match = words[i:i+6]
                   break
           if match is None:
-              print("OCR menu tokens:", [x["text"] for x in tokens])
-              raise SystemExit("Could not locate the documented Open Script Console menu item")
+              # For the nested-menu layout, read the submenu screenshot instead.
+              subprocess.run(
+                  ["tesseract", "/tmp/tahoma2d-script-submenu.png", "stdout", "tsv", "--psm", "11"],
+                  check=True, stdout=Path("/tmp/tahoma2d-menu-final.tsv").open("w", encoding="utf-8")
+              )
+              rows = list(csv.DictReader(Path("/tmp/tahoma2d-menu-final.tsv").open(), delimiter="\\t"))
+              words = [r for r in rows if r.get("text", "").strip()]
+              for i in range(len(words)):
+                  phrase = " ".join(x["text"].strip() for x in words[i:i+6]).lower()
+                  if "open script console" in phrase:
+                      match = words[i:i+6]
+                      break
+          if match is None:
+              raise SystemExit("Open Script Console was recognized but its click target could not be resolved")
           left = min(int(x["left"]) for x in match)
           top = min(int(x["top"]) for x in match)
           right = max(int(x["left"])+int(x["width"]) for x in match)
           bottom = max(int(x["top"])+int(x["height"]) for x in match)
-          print("SCRIPT_CONSOLE_MENU_BOUNDS", left, top, right, bottom)
           Path("/tmp/tahoma2d-console-menu-click.txt").write_text(
-              f"{(left+right)//2} {(top+bottom)//2}\n", encoding="utf-8")
+              f"{(left+right)//2} {(top+bottom)//2}\\n", encoding="utf-8")
+          print("SCRIPT_CONSOLE_MENU_BOUNDS", left, top, right, bottom)
           PY
           read MENU_X MENU_Y < /tmp/tahoma2d-console-menu-click.txt
           xdotool mousemove "$MENU_X" "$MENU_Y" click 1
           sleep 3
           import -window root /tmp/tahoma2d-script-console-open.png
-          tesseract /tmp/tahoma2d-script-console-open.png stdout > /tmp/tahoma2d-console-screen.txt
+          tesseract /tmp/tahoma2d-script-console-open.png stdout --psm 11 > /tmp/tahoma2d-console-screen.txt
           grep -qi "script console" /tmp/tahoma2d-console-screen.txt || {
             cat /tmp/tahoma2d-console-screen.txt
             echo "Tahoma2D Script Console did not become visible."
