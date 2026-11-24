@@ -129,18 +129,13 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool key --clearmodifiers --window "$MAIN_WINDOW" alt+f
+          # Click the File label once. Do not send Alt+F first: that can open
+          # the menu and make the following mouse click close it again.
+          xdotool mousemove --sync 167 68 click 1
           sleep 2
-          xdotool mousemove --sync 167 68
-          xdotool mousedown 1
-          sleep 1
-          xwd -root -silent -out /tmp/tahoma2d-file-menu-pressed.xwd
-          xdotool mouseup 1
-          sleep 1
           xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
           convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
-          convert /tmp/tahoma2d-file-menu-pressed.xwd /tmp/tahoma2d-file-menu-pressed.png
-          echo "Captured File menu for deterministic menu-item mapping."
+          echo "Captured the File menu after a single click for menu-item inspection."
           exit 23
           DIALOG=""
           for i in $(seq 1 15); do
