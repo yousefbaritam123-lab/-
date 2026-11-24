@@ -50,7 +50,7 @@ jobs:
           tar -xzf /tmp/opentoonz-sample.tar.gz -C /tmp/opentoonz-sample --strip-components=1
           test -s /tmp/opentoonz-sample/dwanko_run.tnz
           mkdir -p /tmp/tahoma2d-real-smoke
-          tcomposer /tmp/opentoonz-sample/dwanko_run.tnz -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
+          xvfb-run -a tcomposer /tmp/opentoonz-sample/dwanko_run.tnz -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
           python - <<'PY'
           from pathlib import Path
           from PIL import Image, ImageStat
