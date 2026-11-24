@@ -64,4 +64,4 @@ This means copying Skele2D's entire editor would duplicate existing pose/segment
 - Tiny 2D Rig Tools describes useful IK/driver behavior, but no clear license was located. Its source is not copied.
 - The Blender Rhubarb add-on README states it is not compatible with Blender 3.2 and above.
 
-This document records research and licensing decisions. It does not claim that any third-party engine has been fully integrated.
+## First adopted improvement\n\nThe first license-safe adaptation is in `studio/rig.py`: looping clips now interpolate the last keyframe back to the first across the cycle seam instead of holding the final pose and snapping when time wraps. A regression test checks continuity around the loop boundary. This is an independent Python implementation of the general cyclic pose-interpolation pattern documented by Skele2D; no Skele2D source file was copied.\n\nThis document records research and licensing decisions. It does not claim that any third-party engine has been fully integrated.
