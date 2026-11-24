@@ -83,6 +83,7 @@ def write_toonzscript(scene_path: Path, level_paths: Iterable[Path],
         f"scene.save({js(scene_path)});",
         f'print("TAHOMA2D_NATIVE_SCENE_SAVED", {json.dumps(str(scene_path))});',
     ])
+    scene_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return script_path
