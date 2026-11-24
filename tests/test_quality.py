@@ -79,7 +79,7 @@ class QualityGateTests(unittest.TestCase):
                 audio.setnchannels(2)
                 audio.setsampwidth(3)
                 audio.setframerate(48000)
-                audio.writeframes(bytes(48000 * 2 * 3))
+                audio.writeframes(bytes(48000 * 2 * 6))
             self.frames(p)
             report = audit_episode(p)
             self.assertFalse(report["delivery_eligible"])
