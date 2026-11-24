@@ -17,6 +17,12 @@ class BlenderBridgeSyntaxTests(unittest.TestCase):
         self.assertIn('"_finger_"', source)
         self.assertIn('"_thumb_"', source)
 
+    def test_portrait_stage_scales_multiple_actors_and_keeps_hair_visible(self):
+        script = Path(__file__).resolve().parents[1] / "tools" / "blender_scene.py"
+        source = script.read_text(encoding="utf-8")
+        self.assertIn("stage_scale = 1.0 if actor_count == 1 else max(", source)
+        self.assertIn('head_r * 0.38, hair, root, 0.32', source)
+
 
 if __name__ == "__main__":
     unittest.main()
