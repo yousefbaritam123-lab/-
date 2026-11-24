@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Iterable
 
 
-def prepare_scene_levels(project_dir: Path, output_dir: Path, *, width: int = 1920,
-                         height: int = 1080) -> list[Path]:
+def prepare_scene_levels(project_dir: Path, output_dir: Path, *, width: int = 1080,
+                         height: int = 1920) -> list[Path]:
     project = Path(project_dir).resolve()
     output = Path(output_dir).resolve()
     output.mkdir(parents=True, exist_ok=True)
