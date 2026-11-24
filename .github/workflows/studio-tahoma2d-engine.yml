@@ -40,6 +40,44 @@ jobs:
           cat /tmp/tcomposer-usage.txt
           grep -E "Source file|srcName|-multimedia|-range" /tmp/tcomposer-usage.txt
           echo "No-argument exit code: $code (usage output expected)"
+      - name: Render a real upstream animation scene with Tahoma2D
+        run: |
+          set -euo pipefail
+          # External OpenToonz sample data is used only as a temporary compatibility fixture.
+          # Its upstream repository is CC BY-NC 4.0; it is not copied into this project.
+          curl -fL --retry 3 https://github.com/opentoonz/opentoonz_sample/archive/refs/heads/master.tar.gz -o /tmp/opentoonz-sample.tar.gz
+          mkdir -p /tmp/opentoonz-sample
+          tar -xzf /tmp/opentoonz-sample.tar.gz -C /tmp/opentoonz-sample --strip-components=1
+          test -s /tmp/opentoonz-sample/dwanko_run.tnz
+          mkdir -p /tmp/tahoma2d-real-smoke
+          tcomposer /tmp/opentoonz-sample/dwanko_run.tnz -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          out = Path("/tmp/tahoma2d-real-smoke")
+          candidates = [p for p in out.rglob("*") if p.is_file() and p.suffix.lower() in {".png", ".tif", ".tiff"}]
+          if not candidates:
+              raise SystemExit("Tahoma2D returned without producing a raster frame.")
+          valid = []
+          for path in candidates:
+              try:
+                  with Image.open(path) as im:
+                      im.load()
+                      rgb = im.convert("RGB")
+                      if rgb.width < 64 or rgb.height < 64:
+                          continue
+                      stats = ImageStat.Stat(rgb.resize((96, 96)))
+                      variance = sum(stats.stddev) / 3
+                      if variance > 1.0:
+                          valid.append((path, rgb.size, round(variance, 2), path.stat().st_size))
+              except Exception:
+                  continue
+          if not valid:
+              raise SystemExit("No decoded, non-blank Tahoma2D frame was produced.")
+          print("REAL_TAHOMA2D_RENDER_OK")
+          for item in valid:
+              print({"file": str(item[0]), "dimensions": item[1], "variance": item[2], "bytes": item[3]})
+          PY
       - name: Launch desktop application in virtual display
         run: |
           set +e
