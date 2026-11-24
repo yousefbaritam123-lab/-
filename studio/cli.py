@@ -200,6 +200,11 @@ def main(argv: list[str] | None = None) -> int:
     edit_cmd.add_argument("project", type=Path)
     script_cmd = sub.add_parser("script-qa", help="check dialogue speakers, timing, overlaps and speaking pace")
     script_cmd.add_argument("project", type=Path)
+    interpolate_cmd = sub.add_parser("interpolate", help="increase video FPS using FFmpeg motion-compensated interpolation")
+    interpolate_cmd.add_argument("project", type=Path)
+    interpolate_cmd.add_argument("--fps", type=int, required=True, help="target FPS; e.g. 60 from a 30 FPS source")
+    interpolate_cmd.add_argument("--source", type=Path, help="source MP4; default renders/episode.mp4")
+    interpolate_cmd.add_argument("--output", type=Path, help="output MP4; default renders/<source>-<fps>fps.mp4")
     blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
@@ -346,6 +351,18 @@ def main(argv: list[str] | None = None) -> int:
             print("WARNING: " + warning)
         print("Report: " + str(args.project / "production" / "script_quality_report.json"))
         return 1 if report["errors"] else 0
+    if args.command == "interpolate":
+        from .frame_interpolation import interpolate_video
+        try:
+            output = interpolate_video(
+                args.project, args.fps, source=args.source, output=args.output
+            )
+        except Exception as exc:
+            print("INTERPOLATION FAILED: " + str(exc))
+            return 1
+        print(f"Interpolated video created: {output}")
+        print("Note: interpolation improves temporal smoothness only; it does not repair source animation.")
+        return 0
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
         output = render_with_blender(args.project, blender=args.blender)
