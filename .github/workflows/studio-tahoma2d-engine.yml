@@ -126,9 +126,11 @@ jobs:
             echo "Tahoma2D main window was not available after dismissing first-run panels."
             exit 1
           fi
+          xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool mousemove 168 68 click 1
+          xdotool mousemove --sync 170 68
+          xdotool click --repeat 1 --delay 100 1
           sleep 2
           xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
           convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
