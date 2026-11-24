@@ -17,7 +17,7 @@ This exports original SVG artwork and available articulated source segments into
 
     projects/episode-001/production/tahoma2d/characters/
 
-For the named Youssef and Adam sheets, the package preserves the original design sheet, exports a full reference, and splits the existing arm/leg strokes at their authored vertices into canvas-aligned SVG levels. It also exports the existing head, costume and face shapes as separate levels and records joint landmarks. This is source-preserving vector segmentation, not new drawing. The Plastic mesh/skeleton and native .tnz scene still need to be authored and tested in Tahoma2D.
+For the named Youssef and Adam sheets, the package preserves the original design sheet, exports a full reference, and splits the existing arm/leg strokes at their authored vertices into canvas-aligned SVG levels. It also exports the existing head, costume and face shapes as separate levels and records joint landmarks. This is source-preserving vector segmentation, not new drawing. Important art limitation: the current model sheets are simplified line-art; Youssef's sheet has a red scarf but no authored shirt/trouser silhouette, while Adam has a blue torso shape but no separate sleeves or hands. The colors in character.toon.json do not create missing SVG artwork. The Plastic mesh/skeleton and native .tnz scene still need to be authored and tested in Tahoma2D.
 
 ## Native Tahoma2D batch rendering
 
