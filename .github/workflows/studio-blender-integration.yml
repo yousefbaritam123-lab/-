@@ -59,6 +59,12 @@ jobs:
           episode["id"] = "blender-integration-smoke"
           episode["title"] = "Blender 2D render integration"
           episode["format"] = {"width": 360, "height": 640, "fps": 30, "duration_seconds": 2}
+          episode["characters"].append({
+              "id": "extra_test", "name": "Extra cast import",
+              "cast_id": "extra_001",
+              "rig": "assets/characters/youssef/character.toon.json",
+              "x": 180, "y": 500, "scale": 1.0
+          })
           episode["locations"] = [
               {"id": "street_01", "name": "Algerian street", "sky_bottom": "#D9E3EA", "ground": "#647D62"},
               {"id": "classroom_01", "name": "Classroom", "environment": "classroom"},
@@ -72,10 +78,10 @@ jobs:
               "id": f"smoke-shot-{index + 1}",
               "duration_seconds": 0.4,
               "location": environment,
-              "actors": ["youssef", "adam"],
+              "actors": ["youssef", "adam", "extra_test"],
               "action": actions[index],
               "camera": {"zoom": 1.0 + index * 0.04, "x": index * 4},
-              "positions": {"youssef": {"x": 125, "y": 500}, "adam": {"x": 245, "y": 500}},
+              "positions": {"youssef": {"x": 80, "y": 500}, "adam": {"x": 280, "y": 500}, "extra_test": {"x": 180, "y": 500}},
               "motion_tracks": {
                   "youssef": [{"start": 0, "end": 0.4, "action": actions[index]}],
                   "adam": [{"start": 0, "end": 0.4, "action": "listen"}]
