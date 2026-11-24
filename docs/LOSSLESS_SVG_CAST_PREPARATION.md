@@ -39,6 +39,16 @@ The original full paths remain intact in the main extracted SVG; the new
 articulation file is an additional derivative and does not overwrite source
 artwork.
 
+## Original Youssef and Adam model sheets
+
+The Blender bridge also extracts the character-only vector group from
+`assets/characters/youssef/design_sheet.svg` and
+`assets/characters/adam/design_sheet.svg`. The surrounding model-sheet
+background, title and notes are excluded; the original character group,
+colors, linework and transforms are preserved. This gives the main two actors
+their actual approved model-sheet drawings in Blender instead of the legacy
+procedural substitute.
+
 ## Blender source-art integration
 
 `studio.blender_bridge` prepares the extracted cast automatically when a Blender
