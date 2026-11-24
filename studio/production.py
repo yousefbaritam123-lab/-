@@ -233,6 +233,7 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
             "automatic_artistic_perfection_claimed": False,
         },
         "rounds": rounds,
+        "audio_repair": audio_repair,
         "final_frame_audit": final_audit,
         "errors": hard_errors,
         "next_action": "Run studio finalize only after visual approval and all hard gates pass.",
