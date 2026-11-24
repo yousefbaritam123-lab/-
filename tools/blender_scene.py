@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import bpy
+from mathutils import Matrix, Vector
 
 
 def rgba(hex_color, fallback=(0.2, 0.2, 0.2, 1.0)):
@@ -294,6 +295,70 @@ def set_viseme(actor, shape, frame):
 
 
 
+
+def build_svg_character(actor, svg_path, width, height):
+    """Import the original extracted SVG drawing as the actor artwork.
+
+    No replacement body is drawn here. The original SVG's fills, outlines,
+    clothing, hair and face are imported as Blender curve objects and grouped
+    under a transform root. This first integration animates the complete
+    source drawing; per-limb pivot animation is a separate next rig stage.
+    """
+    svg_path = Path(svg_path)
+    if not svg_path.is_file():
+        raise FileNotFoundError(f"Original SVG character artwork missing: {svg_path}")
+    if not hasattr(bpy.ops.import_curve, "svg"):
+        try:
+            bpy.ops.preferences.addon_enable(module="io_curve_svg")
+        except Exception as exc:
+            raise RuntimeError("Blender SVG importer (io_curve_svg) is unavailable") from exc
+    if not hasattr(bpy.ops.import_curve, "svg"):
+        raise RuntimeError("Blender SVG importer did not register bpy.ops.import_curve.svg")
+
+    before = set(bpy.data.objects)
+    bpy.ops.import_curve.svg(filepath=str(svg_path))
+    imported = [obj for obj in bpy.data.objects if obj not in before]
+    if not imported:
+        raise RuntimeError(f"Blender imported no vector objects from {svg_path.name}")
+
+    points = []
+    for obj in imported:
+        for corner in obj.bound_box:
+            points.append(obj.matrix_world @ Vector(corner))
+    if not points:
+        raise RuntimeError(f"Imported SVG has no measurable geometry: {svg_path.name}")
+    min_x = min(p.x for p in points)
+    max_x = max(p.x for p in points)
+    min_y = min(p.y for p in points)
+    max_y = max(p.y for p in points)
+    source_height = max_y - min_y
+    if source_height <= 1e-6:
+        raise RuntimeError(f"Imported SVG has zero height: {svg_path.name}")
+    factor = 2.15 / source_height
+    center_x = (min_x + max_x) * 0.5
+
+    root = bpy.data.objects.new("ActorSVG_" + str(actor["id"]), None)
+    bpy.context.scene.collection.objects.link(root)
+    root.empty_display_type = "CIRCLE"
+    root.empty_display_size = 0.35
+    x = float(actor.get("x", width * 0.5))
+    y = float(actor.get("y", height * 0.82))
+    root.location = ((x - width * 0.5) / 100.0, (height * 0.5 - y) / 100.0, 0)
+    actor_scale = float(actor.get("scale", 1.0))
+    root.scale = (actor_scale, actor_scale, actor_scale)
+
+    normalize = Matrix.Translation(Vector((-center_x * factor, -min_y * factor, 0.0))) @ Matrix.Scale(factor, 4)
+    for obj in imported:
+        old_world = obj.matrix_world.copy()
+        obj.parent = root
+        obj.matrix_parent_inverse = Matrix.Identity(4)
+        obj.matrix_basis = normalize @ old_world
+    return {
+        "root": root, "arms": {}, "elbows": {}, "legs": {}, "knees": {},
+        "mouths": {}, "brows": {}, "artwork_backend": "original_svg_curves",
+    }
+
+
 def build_character(actor, profile, width, height):
     actor_id = str(actor["id"])
     appearance = dict(profile.get("appearance", {}))
@@ -488,7 +553,11 @@ def main():
         actor_id = str(actor["id"])
         profile_id = actor.get("cast_id", actor_id)
         profile = catalog.get(profile_id, {})
-        actors[actor_id] = build_character(actor, profile, width, height)
+        svg_cast_path = Path(manifest.get("prepared_cast_path", "")) / f"{profile_id}.svg"
+        if str(profile_id).startswith("extra_") and svg_cast_path.is_file():
+            actors[actor_id] = build_svg_character(actor, svg_cast_path, width, height)
+        else:
+            actors[actor_id] = build_character(actor, profile, width, height)
 
     current_frame = 1
     for shot in manifest.get("shots", []):
