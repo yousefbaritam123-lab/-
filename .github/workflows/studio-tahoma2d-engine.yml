@@ -128,15 +128,12 @@ jobs:
           fi
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool mousemove --window "$MAIN_WINDOW" 30 20 click 1
-          sleep 1
+          xdotool mousemove --window "$MAIN_WINDOW" 16 10 click 1
+          sleep 2
           xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
           convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
-          for i in $(seq 1 17); do xdotool key --clearmodifiers Down; done
-          xdotool key --clearmodifiers Right
-          sleep 1
-          xdotool key --clearmodifiers Return
-          sleep 3
+          echo "Captured File menu for deterministic menu-item mapping."
+          exit 23
           DIALOG=""
           for i in $(seq 1 15); do
             DIALOG=$(xdotool search --onlyvisible --name 'Run script' 2>/dev/null | head -1 || true)
