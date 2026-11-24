@@ -110,19 +110,37 @@ jobs:
             if xdotool search --onlyvisible --name 'Tahoma' >/dev/null 2>&1; then break; fi
             sleep 1
           done
+          SCRIPT_DIR="$HOME/.local/share/Tahoma2D/library/scripts"
+          mkdir -p "$SCRIPT_DIR"
+          cp /tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js "$SCRIPT_DIR/create_native_scene.js"
           xdotool key --clearmodifiers alt+f
           sleep 1
           xdotool key --clearmodifiers s
           sleep 1
           xdotool key --clearmodifiers r
-          sleep 2
-          xdotool key --clearmodifiers ctrl+l
-          xdotool type --clearmodifiers --delay 1 '/tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js'
+          sleep 3
+          DIALOG=""
+          for i in $(seq 1 15); do
+            DIALOG=$(xdotool search --onlyvisible --name 'Run script' 2>/dev/null | head -1 || true)
+            [ -n "$DIALOG" ] && break
+            sleep 1
+          done
+          if [ -z "$DIALOG" ]; then
+            xwininfo -root -tree || true
+            echo "Tahoma2D Run Script dialog did not open."
+            exit 1
+          fi
+          eval "$(xdotool getwindowgeometry --shell "$DIALOG")"
+          xdotool windowactivate --sync "$DIALOG"
+          xdotool mousemove --window "$DIALOG" $((WIDTH / 2)) $((HEIGHT - 55)) click 1
+          xdotool type --clearmodifiers --delay 1 'create_native_scene.js'
+          xdotool key Tab
           xdotool key Return
-          sleep 12
+          sleep 15
           SCENE=/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz
           if [ ! -s "$SCENE" ]; then
             import -window root /tmp/tahoma2d-screen.png || true
+            xwininfo -root -tree || true
             cat /tmp/tahoma2d-gui.log || true
             echo "Tahoma2D did not save the requested native scene through ToonzScript."
             exit 1
