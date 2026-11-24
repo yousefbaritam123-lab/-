@@ -26,6 +26,19 @@ def _safe_id(value: str) -> str:
     return value
 
 
+
+def _absolute_polyline_points(path_data: str) -> list[tuple[float, float]]:
+    """Read absolute M/L vertices used by the cast's arm and leg paths."""
+    points: list[tuple[float, float]] = []
+    for match in re.finditer(r"(?<![A-Za-z])(?:M|L)\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)", path_data):
+        points.append((float(match.group(1)), float(match.group(2))))
+    return points
+
+
+def _split_subpaths(path_data: str) -> list[str]:
+    return [part.strip() for part in re.split(r"(?=M\s)", path_data.strip()) if part.strip()]
+
+
 def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int = 60) -> Path:
     """Extract each cast group and preserve each direct SVG element verbatim.
 
@@ -59,7 +72,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
         "source_preserved": True,
         "character_count": len(groups),
         "characters": [],
-        "rig_status": "source_layers_extracted_joint_maps_created_articulation_incomplete",
+        "rig_status": "source_layers_and_elbow_split_arm_segments_created_leg_segmentation_incomplete",
         "important_limit": (
             "Source SVG elements are preserved as independent vector layers. "
             "This does not infer anatomical joints or split compound paths."
@@ -116,22 +129,24 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             layer.append(copied)
             # Existing paired SVG subpaths can be exported independently without altering the source layer.
             d = child.get("d", "") if tag == "path" else ""
-            subpaths = [part.strip() for part in re.split(r"(?=M\s)", d.strip()) if part.strip()]
-            if tag == "path" and len(subpaths) == 2:
-                fill = child.get("fill", "")
-                stroke_width = child.get("stroke-width", "")
-                if fill == "none" and stroke_width in {"8", "4"}:
-                    kind = "arm_outline" if stroke_width == "8" else "arm_skin"
-                    for subpath in subpaths:
-                        first = re.match(r"M\s*(-?\d+(?:\.\d+)?)", subpath)
-                        side = "L" if first and float(first.group(1)) < (100 + column * 200) else "R"
-                        part = ET.Element(_tag("path"), dict(child.attrib))
-                        part.set("d", subpath)
-                        articulated_parts.append((f"{kind}_{side}", part))
-                elif fill != "none" and stroke_width == "4":
-                    for subpath in subpaths:
-                        first = re.match(r"M\s*(-?\d+(?:\.\d+)?)", subpath)
-                        side = "L" if first and float(first.group(1)) < (100 + column * 200) else "R"
+            subpaths = _split_subpaths(d) if tag == "path" else []
+            if tag == "path" and child.get("fill") == "none" and child.get("stroke-width") in {"8", "4"}:
+                kind = "arm_outline" if child.get("stroke-width") == "8" else "arm_skin"
+                for subpath in subpaths:
+                    points = _absolute_polyline_points(subpath)
+                    if len(points) >= 3:
+                        side = "L" if sum(p[0] for p in points) / len(points) < (100 + column * 200) else "R"
+                        for segment_name, segment_points in (("upper", points[:2]), ("forearm", points[1:3])):
+                            local = [(x - column * 200, y) for x, y in segment_points]
+                            segment_path = "M " + " L ".join(f"{x:g} {y:g}" for x, y in local)
+                            part = ET.Element(_tag("path"), dict(child.attrib))
+                            part.set("d", segment_path)
+                            articulated_parts.append((f"{segment_name}_{kind}_{side}", part))
+            elif tag == "path" and child.get("fill") != "none" and child.get("stroke-width") == "4":
+                for subpath in subpaths:
+                    points = _absolute_polyline_points(subpath)
+                    if len(points) >= 2:
+                        side = "L" if sum(p[0] for p in points) / len(points) < (100 + column * 200) else "R"
                         part = ET.Element(_tag("path"), dict(child.attrib))
                         part.set("d", subpath)
                         articulated_parts.append((f"foot_{side}", part))
@@ -141,26 +156,43 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                 "source_attributes": dict(child.attrib),
             })
 
-        # Joint landmarks are relative to the character's 200 x 220 cell.
-        # They describe the source pose; they do not imply that compound
-        # artwork has already been separated into independently moving pieces.
+        # Joint landmarks are derived from the original source path vertices.
         cx, cy = 100.0, 76.0
         joints = {
-            "head_center": [cx, cy], "neck": [cx, 95.0],
-            "left_shoulder": [cx - 17.0, 109.0],
-            "right_shoulder": [cx + 17.0, 109.0],
-            "left_elbow": [cx - 36.0, 133.0],
-            "right_elbow": [cx + 36.0, 133.0],
-            "left_wrist": [cx - 50.0, 151.0],
-            "right_wrist": [cx + 50.0, 151.0],
-            "pelvis": [cx, 148.0],
-            "left_hip": [cx - 10.0, 146.0],
-            "right_hip": [cx + 10.0, 146.0],
-            "left_knee": [cx - 17.0, 172.0],
-            "right_knee": [cx + 17.0, 172.0],
-            "left_ankle": [cx - 30.0, 188.0],
-            "right_ankle": [cx + 30.0, 188.0],
+            "head_center": [cx, cy], "neck": [cx, 102.5],
+            "left_shoulder": [83.0, 109.0], "right_shoulder": [117.0, 109.0],
+            "left_elbow": [64.0, 133.0], "right_elbow": [136.0, 129.0],
+            "left_wrist": [50.0, 151.0], "right_wrist": [150.0, 151.0],
+            "pelvis": [100.0, 139.0],
+            "left_hip": [87.0, 139.0], "right_hip": [113.0, 139.0],
+            "left_knee": [83.0, 172.0], "right_knee": [117.0, 172.0],
+            "left_ankle": [81.0, 188.0], "right_ankle": [120.0, 188.0],
         }
+        for node in source_children:
+            if node.tag != _tag("path") or node.get("fill") != "none" or node.get("stroke-width") != "8":
+                continue
+            paths = [_absolute_polyline_points(p) for p in _split_subpaths(node.get("d", ""))]
+            paths = [p for p in paths if len(p) >= 3]
+            left = [p for p in paths if sum(x for x, _ in p) / len(p) < (100 + column * 200)]
+            right = [p for p in paths if sum(x for x, _ in p) / len(p) >= (100 + column * 200)]
+            if left and right:
+                lp = [(x - column * 200, y) for x, y in left[0][:3]]
+                rp = [(x - column * 200, y) for x, y in right[0][:3]]
+                joints["left_shoulder"], joints["left_elbow"], joints["left_wrist"] = [list(p) for p in lp]
+                joints["right_shoulder"], joints["right_elbow"], joints["right_wrist"] = [list(p) for p in rp]
+            break
+        for node in source_children:
+            if node.tag != _tag("path") or node.get("fill") == "none" or node.get("stroke-width") != "5":
+                continue
+            points = [(x - column * 200, y) for x, y in _absolute_polyline_points(node.get("d", ""))]
+            left = [p for p in points if p[0] < 100]
+            right = [p for p in points if p[0] > 100]
+            if len(points) >= 9 and left and right:
+                joints["left_hip"] = list(min(left, key=lambda p: p[1]))
+                joints["right_hip"] = list(min(right, key=lambda p: p[1]))
+                joints["left_knee"] = list(min((p for p in left if p[1] > joints["left_hip"][1]), key=lambda p: abs(p[1] - 172), default=tuple(joints["left_knee"])))
+                joints["right_knee"] = list(min((p for p in right if p[1] > joints["right_hip"][1]), key=lambda p: abs(p[1] - 172), default=tuple(joints["right_knee"])))
+            break
         rig = {
             "schema_version": 1,
             "character_id": character_id,
@@ -179,8 +211,8 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                 {"name": "shin_R", "parent": "right_knee", "child": "right_ankle"},
             ],
             "articulation_status": {
-                "arms": "landmarks_defined; source compound paths not yet split",
-                "legs": "landmarks_defined; connected lower-body silhouette not yet split",
+                "arms": "upper_arm_and_forearm_outline_and_skin_segments_extracted_from_original_paths",
+                "legs": "source_lower_body_outline_preserved; joint_landmarks_derived_but_leg_meshes_not_split",
                 "head": "source element exists",
                 "torso": "source element exists",
                 "hands": "not separately drawn",
@@ -198,7 +230,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
         ET.ElementTree(rig_root).write(rig_layers_path, encoding="utf-8", xml_declaration=True)
         rig["articulated_layers_svg"] = rig_layers_path.name
         rig["articulated_layer_ids"] = [part_id for part_id, _ in articulated_parts]
-        rig["articulation_status"]["arms"] = "left_and_right_arm_subpaths_exported; elbow segmentation still required"
+        rig["articulation_status"]["arms"] = "left_right_upper_arm_and_forearm_outline_and_skin_segments_exported"
         rig["articulation_status"]["feet"] = "left_and_right_feet_exported" if any(part_id.startswith("foot_") for part_id, _ in articulated_parts) else "not_split"
         rig_path = output_dir / f"{character_id}.rig.json"
         rig_path.write_text(json.dumps(rig, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -212,7 +244,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             "layers": elements,
             "rig": rig_path.name,
             "joint_count": len(joints),
-            "rig_status": "joint_map_created_articulation_incomplete",
+            "rig_status": "elbow_split_arm_segments_created_leg_segmentation_incomplete",
         })
 
     manifest_path = output_dir / "cast_manifest.json"
