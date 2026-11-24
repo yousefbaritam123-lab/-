@@ -28,7 +28,7 @@ jobs:
       - name: Install Tahoma2D and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool x11-utils imagemagick libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
+          sudo apt-get install -y xvfb xdotool x11-utils x11-apps imagemagick libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
           python -m pip install --upgrade pip pillow
           sudo apt-get install -y /tmp/Tahoma2D-linux-gcc.deb
           dpkg -L tahoma2d | tee /tmp/tahoma2d-files.txt
@@ -128,7 +128,7 @@ jobs:
           fi
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool mousemove --window "$MAIN_WINDOW" 28 45 click 1
+          xdotool mousemove --window "$MAIN_WINDOW" 30 20 click 1
           sleep 1
           xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
           convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
