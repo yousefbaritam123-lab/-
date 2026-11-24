@@ -189,6 +189,8 @@ def set_viseme(actor, shape, frame):
     # Separate mouth drawings can be switched at dialogue viseme timestamps.
     mouth_rest = make_line(actor_id + "_mouth_rest", [(-0.09, 1.22), (0, 1.19), (0.09, 1.22)],
                            0.018, ink, root, 0.38)
+    mouth_closed = make_line(actor_id + "_mouth_closed", [(-0.075, 1.20), (0.075, 1.20)],
+                             0.014, ink, root, 0.38)
     mouth_smile = make_line(actor_id + "_mouth_smile",
                             [(-0.11, 1.22), (-0.05, 1.17), (0.05, 1.17), (0.11, 1.22)],
                             0.018, ink, root, 0.38)
@@ -204,7 +206,7 @@ def set_viseme(actor, shape, frame):
     mouth_a = make_disc(actor_id + "_mouth_a", 0, 1.20, 0.065, 0.095, ink, root, 0.39)
     mouth_o = make_disc(actor_id + "_mouth_o", 0, 1.20, 0.055, 0.075, ink, root, 0.39)
     mouth_u = make_disc(actor_id + "_mouth_u", 0, 1.20, 0.075, 0.045, ink, root, 0.39)
-    mouths = {"REST": mouth_rest, "CLOSED": mouth_rest, "SMILE": mouth_smile,
+    mouths = {"REST": mouth_rest, "CLOSED": mouth_closed, "SMILE": mouth_smile,
               "FROWN": mouth_frown, "E": mouth_e, "I": mouth_i,
               "A": mouth_a, "O": mouth_o, "U": mouth_u}
     for mouth in set(mouths.values()):
