@@ -5,13 +5,13 @@ Target: YOUSSEF autonomous 2D series production system.
 
 ## Decision
 
-Do not vendor a complete animation editor into the Python/Blender pipeline. The reviewed projects solve different layers of the problem. Adopt compatible algorithms and formats behind small adapters, retain the current episode/story/continuity/QC pipeline, and keep full desktop animation applications as optional external authoring tools.
+Adopt Tahoma2D as the primary external 2D character-animation authoring engine. Keep the Python episode/story/continuity/QC pipeline as the production coordinator, and use a narrow SVG asset bridge rather than embedding Tahoma2D's C++ application. Blender is demoted to a legacy optional backend; do not remove its files until the Tahoma2D pilot is visually accepted.
 
 ## Repositories reviewed
 
 | Project | What it contributes | License / redistribution finding | Decision |
 |---|---|---|---|
-| [Tahoma2D](https://github.com/Tahoma2D/tahoma2d) | Full 2D and stop-motion authoring workflow, based on Toonz; production timeline and drawing tools | Project README says files outside thirdparty and MyPaint brush library use Modified BSD; subdirectories have separate licenses | Study workflow and file interchange. Do not embed the whole C++ desktop application in the Python runtime |
+| [Tahoma2D](https://github.com/Tahoma2D/tahoma2d) | Full 2D and stop-motion authoring workflow, based on Toonz; production timeline and drawing tools | Project README says files outside thirdparty and MyPaint brush library use Modified BSD; subdirectories have separate licenses | **Selected primary authoring engine.** Import original SVG levels as PLI drawings, author Plastic mesh/skeleton in Tahoma2D, and keep the desktop app external rather than embedding its C++ runtime |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | Mature 2D animation application and production workflow | GitHub API did not provide a definitive SPDX license in this review; verify each relevant component before copying | Reference only until component licensing is verified |
 | [Synfig](https://github.com/synfig/synfig) | Vector/bitmap tween animation, layers and deformation-oriented 2D workflow | GPL-3.0 | Study concepts; do not copy source into this project without an explicit project-wide GPL decision |
 | [Skele2D](https://github.com/1j01/skele2d) | Named joints/segments, serializable skeleton structures, reusable poses, interpolation and blended animations | GitHub metadata reports MIT | Best small algorithm reference. Its browser/CoffeeScript editor is not a drop-in Python/Blender renderer |
@@ -79,3 +79,4 @@ This means copying Skele2D's entire editor would duplicate existing pose/segment
 `studio/rig.py` independently interpolates the last keyframe back to the first across loop boundaries. A regression test checks continuity around the cycle seam.
 
 This is a real model/runtime integration, not a complete external animation engine import. The Blender scene renderer still uses whole-character raster planes for original artwork; per-limb Blender cut-out animation is not yet integrated or visually approved.
+\n\n## Tahoma2D adapter added\n\n`studio/tahoma2d_bridge.py` exports canvas-aligned per-layer SVGs and a JSON joint/bone manifest under `production/tahoma2d/characters/<character_id>/`. `python -m studio.cli tahoma2d-prepare <episode-project>` prepares cast IDs referenced by the episode. The output includes a manual import/rigging guide. It intentionally does not create a fake native scene or claim an automated Plastic rig.\n
