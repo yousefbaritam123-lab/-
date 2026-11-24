@@ -88,6 +88,7 @@ def doctor() -> int:
         "Node.js": shutil.which("node") is not None,
         "pnpm": shutil.which("pnpm") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
+        "Piper (optional local TTS)": shutil.which("piper") is not None,
         "Blender (optional 2D backend)": shutil.which("blender") is not None,
         "OpenTimelineIO (optional editorial)": _module_available("opentimelineio"),
         "OpenCV (optional vision)": _module_available("cv2"),
@@ -173,6 +174,10 @@ def main(argv: list[str] | None = None) -> int:
     approve_cmd.add_argument("project", type=Path)
     approve_cmd.add_argument("--reviewer", required=True)
     approve_cmd.add_argument("--notes", required=True)
+    voice_cmd = sub.add_parser("voice-generate", help="generate dialogue WAV files with local Piper TTS")
+    voice_cmd.add_argument("project", type=Path)
+    voice_cmd.add_argument("--config", type=Path, help="voice cast JSON; default production/voice_cast.json")
+    voice_cmd.add_argument("--piper", default="piper")
     audio_cmd = sub.add_parser("audio-mix", help="mix timed dialogue, music, ambience and effects into final_mix.wav")
     audio_cmd.add_argument("project", type=Path)
     audio_cmd.add_argument("--config", type=Path, help="mix plan JSON; default production/audio_mix.json")
@@ -298,6 +303,11 @@ def main(argv: list[str] | None = None) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("Visual approval recorded: " + str(target))
+        return 0
+    if args.command == "voice-generate":
+        from .voice import generate_dialogue_audio
+        output = generate_dialogue_audio(args.project, config_path=args.config, executable=args.piper)
+        print(f"Dialogue audio generated; next run audio-mix --config {output}")
         return 0
     if args.command == "audio-mix":
         from .audio import mix_episode_audio
