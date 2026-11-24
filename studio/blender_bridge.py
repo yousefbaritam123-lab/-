@@ -23,6 +23,8 @@ def build_blender_manifest(project_dir: Path) -> Path:
         "shots": episode.get("shots", []),
         "assets_root": str((project_dir / "assets").resolve()),
         "catalog_path": str((project_dir / "assets" / "characters" / "cast_60" / "catalog.json").resolve()),
+        "prepared_cast_path": str((project_dir / "assets" / "characters" / "prepared_cast_60").resolve()),
+        "cast_source_svg": str((project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg").resolve()),
         "output_root": str((project_dir / "renders" / "blender").resolve()),
     }
     target = project_dir / "production" / "blender_scene_manifest.json"
@@ -46,6 +48,21 @@ def render_with_blender(project_dir: Path, *, blender: str = "blender",
     if not script.is_file():
         raise FileNotFoundError(f"Blender scene script missing: {script}")
     manifest_path = build_blender_manifest(project_dir)
+    episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
+    cast_ids = {
+        str(actor.get("cast_id", actor.get("id", "")))
+        for actor in episode.get("characters", [])
+        if str(actor.get("cast_id", actor.get("id", ""))).startswith("extra_")
+    }
+    if cast_ids:
+        source_svg = project_dir / "assets" / "characters" / "cast_60" / "contact_sheet.svg"
+        prepared = project_dir / "assets" / "characters" / "prepared_cast_60"
+        if not (prepared / "cast_manifest.json").is_file():
+            from .svg_character_assets import prepare_svg_cast
+            prepare_svg_cast(source_svg, prepared)
+        missing = [cast_id for cast_id in sorted(cast_ids) if not (prepared / f"{cast_id}.svg").is_file()]
+        if missing:
+            raise RuntimeError("Prepared original SVG cast assets are missing: " + ", ".join(missing))
     output_root = project_dir / "renders" / "blender"
     frames_dir = output_root / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
