@@ -25,7 +25,8 @@ jobs:
       - name: Install Tahoma2D and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libopengl0 libgl1
+          sudo apt-get install -y xvfb libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
+          python -m pip install --upgrade pip pillow
           sudo apt-get install -y /tmp/Tahoma2D-linux-gcc.deb
           dpkg -L tahoma2d | tee /tmp/tahoma2d-files.txt
           grep -E "/(tahoma2d|tcomposer)$" /tmp/tahoma2d-files.txt
