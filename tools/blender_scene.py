@@ -83,6 +83,95 @@ def make_limb(name, pivot, length, mat, thickness, direction=-1):
     return line, joint
 
 
+def make_box(name, location, scale, mat):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=location)
+    obj = bpy.context.object
+    obj.name = name
+    obj.scale = scale
+    obj.data.materials.append(mat)
+    return obj
+
+
+def build_location(location, width, height):
+    """Create a small reusable 2D environment set from the location bible."""
+    location_id = str(location.get("id", "location"))
+    kind = (str(location.get("environment", "")) + " " +
+            str(location.get("type", "")) + " " +
+            str(location.get("id", "")) + " " +
+            str(location.get("name", ""))).lower()
+    objects = []
+    sky = material(location_id + "_sky", rgba(location.get("sky_bottom", "#D9E3EA")))
+    ground = material(location_id + "_ground", rgba(location.get("ground", "#647D62")))
+    objects.append(make_box(location_id + "_sky", (0, 0, -1.1),
+                            (width / 100.0 * 2.0, height / 100.0 * 2.0, 0.05), sky))
+    objects.append(make_box(location_id + "_ground", (0, -height / 200.0 + 0.18, -0.55),
+                            (width / 100.0 * 2.0, 0.42, 0.16), ground))
+    if any(word in kind for word in ("class", "school", "room", "interior")):
+        wall = material(location_id + "_wall", rgba(location.get("wall", "#E8DFCB")))
+        board = material(location_id + "_board", rgba(location.get("board", "#244C45")))
+        wood = material(location_id + "_wood", rgba(location.get("wood", "#986B45")))
+        objects.append(make_box(location_id + "_back_wall", (0, 0.1, -0.9),
+                                (width / 100.0 * 2.0, height / 100.0 * 1.9, 0.08), wall))
+        objects.append(make_box(location_id + "_blackboard", (0, 0.55, -0.55),
+                                (1.55, 0.78, 0.08), board))
+        for desk_x in (-0.95, 0.0, 0.95):
+            objects.append(make_box(location_id + "_desk", (desk_x, -1.75, -0.2),
+                                    (0.62, 0.08, 0.42), wood))
+            objects.append(make_box(location_id + "_desk_leg", (desk_x, -2.05, -0.2),
+                                    (0.055, 0.55, 0.055), wood))
+    elif any(word in kind for word in ("beach", "sea", "coast")):
+        sea = material(location_id + "_sea", rgba(location.get("water", "#4C9FC0")))
+        sand = material(location_id + "_sand", rgba(location.get("sand", "#E8D19B")))
+        objects.append(make_box(location_id + "_sea", (0, -1.15, -0.82),
+                                (width / 100.0 * 2.0, 1.25, 0.08), sea))
+        objects.append(make_box(location_id + "_sand", (0, -2.45, -0.72),
+                                (width / 100.0 * 2.0, 0.55, 0.08), sand))
+    elif any(word in kind for word in ("park", "garden", "forest")):
+        trunk = material(location_id + "_trunk", rgba("#795B3B"))
+        leaves = material(location_id + "_leaves", rgba("#477D4E"))
+        for index, x in enumerate((-1.35, 1.35)):
+            objects.append(make_box(location_id + "_tree_trunk_" + str(index),
+                                    (x, -1.15, -0.45), (0.16, 2.0, 0.16), trunk))
+            objects.append(make_disc(location_id + "_tree_top_" + str(index),
+                                     x, -0.12, 0.58, 0.66, leaves, None, -0.35))
+        bench = material(location_id + "_bench", rgba("#986B45"))
+        objects.append(make_box(location_id + "_bench_seat", (0, -1.65, -0.25),
+                                (0.85, 0.12, 0.22), bench))
+    elif any(word in kind for word in ("roof", "rooftop", "terrace")):
+        cement = material(location_id + "_cement", rgba("#B7B5AC"))
+        objects.append(make_box(location_id + "_parapet", (0, -1.65, -0.58),
+                                (width / 100.0 * 2.0, 0.55, 0.12), cement))
+        for x in (-1.25, 1.25):
+            objects.append(make_box(location_id + "_neighbor_block", (x, 0.2, -0.9),
+                                    (0.72, 2.4, 0.14), material(location_id + "_neighbor_" + str(x), rgba("#B9A18A"))))
+    else:
+        # Neighborhood street: varied building heights, windows, door and lamp.
+        facade_colors = ("#C9B49B", "#D7C4A8", "#AFAFA4")
+        for index, x in enumerate((-1.35, 1.35, 0.0)):
+            facade = material(location_id + "_facade_" + str(index),
+                              rgba(location.get("building", facade_colors[index])))
+            building_height = (2.4, 1.9, 1.35)[index]
+            objects.append(make_box(location_id + "_building_" + str(index),
+                                    (x, -0.8 + building_height * 0.5, -0.88),
+                                    (0.72, building_height, 0.12), facade))
+            window = material(location_id + "_window_" + str(index), rgba("#7DB3C9"))
+            for row in range(2):
+                for col in (-1, 1):
+                    objects.append(make_box(location_id + "_window",
+                                            (x + col * 0.18, -0.35 + row * 0.62, -0.79),
+                                            (0.13, 0.20, 0.035), window))
+        door = material(location_id + "_door", rgba("#684A35"))
+        objects.append(make_box(location_id + "_door", (-1.35, -1.75, -0.72),
+                                (0.25, 0.65, 0.06), door))
+        lamp = material(location_id + "_lamp", rgba("#3B4147"))
+        objects.append(make_box(location_id + "_street_lamp", (1.55, -0.15, -0.55),
+                                (0.045, 2.6, 0.05), lamp))
+    for obj in objects:
+        obj.hide_render = True
+        obj.keyframe_insert(data_path="hide_render", frame=1)
+    return objects
+
+
 def set_pose(actor, action, frame, end_frame=None, fps=30):
     arms = actor["arms"]
     legs = actor["legs"]
@@ -328,20 +417,13 @@ def main():
     world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.76, 0.84, 0.91, 1)
     world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.8
 
-    # Flat emissive surfaces keep colors stable in headless rendering.
-    first_location = (manifest.get("locations") or [{}])[0]
-    backdrop_mat = material("Studio_Backdrop", rgba(first_location.get("sky_bottom", "#D9E3EA")))
-    bpy.ops.mesh.primitive_plane_add(size=2, location=(0, 0, -1.0))
-    backdrop = bpy.context.object
-    backdrop.name = "Studio_Backdrop"
-    backdrop.scale = (width / 100.0, height / 100.0, 1)
-    backdrop.data.materials.append(backdrop_mat)
-    floor_mat = material("Studio_Floor", rgba(first_location.get("ground", "#647D62")))
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -height / 200.0 + 0.35, -0.55))
-    floor = bpy.context.object
-    floor.name = "Studio_Floor"
-    floor.scale = (width / 100.0, 0.35, 0.12)
-    floor.data.materials.append(floor_mat)
+    # Build a distinct stage for every location in the episode bible.
+    location_sets = {
+        str(item.get("id")): build_location(item, width, height)
+        for item in manifest.get("locations", [])
+    }
+    if not location_sets:
+        location_sets["default"] = build_location({}, width, height)
 
     catalog = {}
     catalog_path = Path(manifest.get("catalog_path", ""))
@@ -374,6 +456,13 @@ def main():
             camera.location.y = float(camera_state.get("y", 0.0)) / 100.0
             camera.data.keyframe_insert(data_path="ortho_scale", frame=camera_frame)
             camera.keyframe_insert(data_path="location", frame=camera_frame)
+        active_location = str(shot.get("location", "default"))
+        for location_id, location_objects in location_sets.items():
+            visible = location_id == active_location
+            for obj in location_objects:
+                obj.hide_render = not visible
+                obj.keyframe_insert(data_path="hide_render", frame=start)
+                obj.keyframe_insert(data_path="hide_render", frame=end)
         active = set(shot.get("actors", []))
         positions = shot.get("positions", {})
         tracks = shot.get("motion_tracks", {})
