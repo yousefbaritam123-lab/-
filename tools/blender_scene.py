@@ -1,7 +1,7 @@
-"""Render an episode as a procedural 2D cartoon in Blender.
+"""Render an episode in Blender using original character artwork where available.
 
-The renderer builds a reusable articulated puppet from Blender curves/meshes.
-It is a real render path (PNG sequence + MP4), not merely a .blend bootstrap.
+Approved model-sheet SVGs are rasterized transparently at high resolution and
+placed as image planes; the legacy procedural builder remains a fallback.
 """
 import argparse
 import json
@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Vector
 
 
 def rgba(hex_color, fallback=(0.2, 0.2, 0.2, 1.0)):
