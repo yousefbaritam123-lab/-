@@ -136,7 +136,7 @@ jobs:
           xdotool windowfocus --sync "$MAIN_WINDOW"
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
           export WINDOW_X="$X" WINDOW_Y="$Y"
-          xdotool mousemove "$((X+168))" "$((Y+68))" click 1
+          xdotool mousemove "$((X+16))" "$((Y+10))" click 1
           sleep 1
           import -window root /tmp/tahoma2d-file-menu-open.png
           import -window root /tmp/tahoma2d-file-menu-open.png
