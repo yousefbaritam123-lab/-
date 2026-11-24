@@ -644,7 +644,15 @@ def render_frame(episode: dict[str, Any], time_s: float, output: Path) -> None:
 
 def render_episode_frames(project_dir: Path, start_frame: int = 0,
                           max_frames: int | None = None,
-                          resume: bool = False) -> tuple[Path, int]:
+                          resume: bool = False,
+                          frame_retries: int = 2) -> tuple[Path, int]:
+    """Render a frame range with bounded per-frame retries and PNG verification.
+
+    A failed frame is removed before retrying so a partial PNG can never be
+    mistaken for a completed frame by resume mode.
+    """
+    if frame_retries < 0 or frame_retries > 5:
+        raise ValueError("frame_retries must be between 0 and 5")
     episode = json.loads((project_dir / "episode.json").read_text(encoding="utf-8"))
     # Resolve the complete 60-character catalog once per render. A character can
     # select a profile explicitly with cast_id, or use a catalog ID as its own ID.
@@ -693,8 +701,40 @@ def render_episode_frames(project_dir: Path, start_frame: int = 0,
     rendered = 0
     for frame_no in range(start, stop):
         frame_path = frame_dir / f"frame_{frame_no:06d}.png"
-        if resume and frame_path.is_file() and frame_path.stat().st_size > 0:
-            continue
-        render_frame(episode, frame_no / fps, frame_path)
+        if resume and frame_path.is_file() and frame_path.stat().st_size >= 256:
+            try:
+                with Image.open(frame_path) as existing:
+                    existing.verify()
+                with Image.open(frame_path) as existing:
+                    if existing.size == (int(episode["format"]["width"]), int(episode["format"]["height"])):
+                        continue
+            except Exception:
+                pass
+        last_error: Exception | None = None
+        for attempt in range(frame_retries + 1):
+            try:
+                if frame_path.exists():
+                    frame_path.unlink()
+                render_frame(episode, frame_no / fps, frame_path)
+                if not frame_path.is_file() or frame_path.stat().st_size < 256:
+                    raise RuntimeError("renderer produced a missing or undersized PNG")
+                with Image.open(frame_path) as rendered_image:
+                    rendered_image.verify()
+                with Image.open(frame_path) as rendered_image:
+                    expected_size = (int(episode["format"]["width"]), int(episode["format"]["height"]))
+                    if rendered_image.size != expected_size:
+                        raise RuntimeError(
+                            f"frame dimensions {rendered_image.size} do not match {expected_size}"
+                        )
+                last_error = None
+                break
+            except Exception as exc:
+                last_error = exc
+                if frame_path.exists():
+                    frame_path.unlink()
+        if last_error is not None:
+            raise RuntimeError(
+                f"Frame {frame_no} failed after {frame_retries + 1} attempt(s): {last_error}"
+            ) from last_error
         rendered += 1
     return frame_dir, rendered
