@@ -57,6 +57,34 @@ class QualityGateTests(unittest.TestCase):
             report = audit_episode(p)
             self.assertTrue(any("incorrect dimensions" in e for e in report["errors"]))
 
+    def test_wrong_sample_rate_audio_mix_blocks_delivery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.project(tmp)
+            import wave
+            with wave.open(str(p / "audio" / "final_mix.wav"), "wb") as audio:
+                audio.setnchannels(2)
+                audio.setsampwidth(3)
+                audio.setframerate(44100)
+                audio.writeframes(b"\\x00" * (44100 * 2 * 3))
+            self.frames(p)
+            report = audit_episode(p)
+            self.assertFalse(report["delivery_eligible"])
+            self.assertTrue(any("48000 Hz" in error for error in report["errors"]))
+
+    def test_wrong_duration_audio_mix_blocks_delivery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.project(tmp)
+            import wave
+            with wave.open(str(p / "audio" / "final_mix.wav"), "wb") as audio:
+                audio.setnchannels(2)
+                audio.setsampwidth(3)
+                audio.setframerate(48000)
+                audio.writeframes(b"\\x00" * (48000 * 2 * 3))
+            self.frames(p)
+            report = audit_episode(p)
+            self.assertFalse(report["delivery_eligible"])
+            self.assertTrue(any("duration mismatch" in error.lower() for error in report["errors"]))
+
     def test_corrupt_or_wrong_duration_audio_mix_blocks_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = self.project(tmp)
