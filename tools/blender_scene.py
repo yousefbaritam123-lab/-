@@ -175,6 +175,8 @@ def build_location(location, width, height):
 def set_pose(actor, action, frame, end_frame=None, fps=30):
     arms = actor["arms"]
     legs = actor["legs"]
+    elbows = actor.get("elbows", {})
+    knees = actor.get("knees", {})
     end_frame = max(frame, int(end_frame if end_frame is not None else frame))
     if action in ("walk", "run"):
         period = 0.80 if action == "walk" else 0.48
@@ -193,6 +195,20 @@ def set_pose(actor, action, frame, end_frame=None, fps=30):
             for current in frames:
                 elapsed = (current - frame) / fps
                 pivot.rotation_euler[2] = math.radians(24) * math.sin(2 * math.pi * elapsed / period + phase)
+                pivot.keyframe_insert(data_path="rotation_euler", frame=current)
+        for key, pivot in elbows.items():
+            phase = 0.0 if key.endswith("L") else math.pi
+            for current in frames:
+                elapsed = (current - frame) / fps
+                bend = 12 + 12 * math.sin(2 * math.pi * elapsed / period + phase)
+                pivot.rotation_euler[2] = math.radians(bend)
+                pivot.keyframe_insert(data_path="rotation_euler", frame=current)
+        for key, pivot in knees.items():
+            phase = 0.0 if key.endswith("L") else math.pi
+            for current in frames:
+                elapsed = (current - frame) / fps
+                bend = 8 + 18 * max(0.0, math.sin(2 * math.pi * elapsed / period + phase))
+                pivot.rotation_euler[2] = math.radians(bend)
                 pivot.keyframe_insert(data_path="rotation_euler", frame=current)
         return
 
@@ -223,6 +239,25 @@ def set_pose(actor, action, frame, end_frame=None, fps=30):
         angle = math.radians(-52 if key.endswith("L") else 52) if action == "kick" else 0.0
         pivot.rotation_euler[2] = angle
         pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
+        pivot.keyframe_insert(data_path="rotation_euler", frame=end_frame)
+    elbow_bends = {
+        "wave": 28, "greet": 28, "point": 12, "explain": 24,
+        "think": 72, "listen": 34, "celebrate": 22,
+        "celebrate_small": 18, "jump": 18, "sad": 12,
+        "apologize": 35, "laugh": 20, "talk": 16,
+    }
+    for key, pivot in elbows.items():
+        bend = elbow_bends.get(action, 5)
+        if action in ("wave", "greet") and key.endswith("R"):
+            bend += 10
+        pivot.rotation_euler[2] = math.radians(bend)
+        pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
+        pivot.keyframe_insert(data_path="rotation_euler", frame=end_frame)
+    for key, pivot in knees.items():
+        bend = 48 if action == "kick" and key.endswith("L") else (8 if action in ("jump", "dodge") else 0)
+        pivot.rotation_euler[2] = math.radians(bend)
+        pivot.keyframe_insert(data_path="rotation_euler", frame=frame)
+        pivot.keyframe_insert(data_path="rotation_euler", frame=end_frame)
 
 
 def set_face(actor, action, frame):
@@ -340,6 +375,7 @@ def build_character(actor, profile, width, height):
     make_line(actor_id + "_belt", [(-0.18, 0.18), (0.18, 0.18)], 0.035, ink, root, 0.18)
 
     arms = {}
+    elbows = {}
     for side, suffix in ((-1, "L"), (1, "R")):
         shoulder = make_pivot(actor_id + "_arm_" + suffix, root, (side * 0.22, 0.96, 0.18))
         upper_len = 0.55 * float(proportions.get("upper_arm", 1))
@@ -348,9 +384,21 @@ def build_character(actor, profile, width, height):
         elbow = make_pivot(actor_id + "_elbow_" + suffix, shoulder, (0, -upper_len, 0))
         make_limb(actor_id + "_fore_" + suffix, elbow, fore_len, skin, 0.075, -1)
         make_disc(actor_id + "_hand_" + suffix, 0, -fore_len, 0.10, 0.09, skin, elbow, 0.18)
+        # Small separated finger strokes make the hand silhouette readable
+        # instead of using a featureless circular endpoint.
+        for finger in range(3):
+            fx = (finger - 1) * 0.045
+            make_line(actor_id + "_finger_" + suffix + "_" + str(finger),
+                      [(fx, -fore_len - 0.035), (fx + 0.008, -fore_len - 0.105)],
+                      0.018, skin, elbow, 0.20)
+        make_line(actor_id + "_thumb_" + suffix,
+                  [(0.075, -fore_len - 0.005), (0.13, -fore_len - 0.055)],
+                  0.02, skin, elbow, 0.20)
         arms[suffix] = shoulder
+        elbows[suffix] = elbow
 
     legs = {}
+    knees = {}
     for side, suffix in ((-1, "L"), (1, "R")):
         hip = make_pivot(actor_id + "_leg_" + suffix, root, (side * 0.12, 0.12, 0.18))
         thigh = 0.58 * float(proportions.get("thigh", 1))
@@ -361,13 +409,15 @@ def build_character(actor, profile, width, height):
         make_line(actor_id + "_foot_" + suffix, [(-0.02, -shin), (0.22, -shin)],
                   0.09, shoe, knee, 0.16)
         legs[suffix] = hip
+        knees[suffix] = knee
 
     scarf = appearance.get("scarf", actor.get("scarf", False))
     if scarf:
         scarf_mat = material(actor_id + "_scarf", rgba(appearance.get("accent", "#C62828")))
         make_line(actor_id + "_scarf", [(-0.2, 1.02), (0, 0.83), (0.2, 1.02)],
                   0.07, scarf_mat, root, 0.22)
-    return {"root": root, "arms": arms, "legs": legs, "mouths": mouths, "brows": brows}
+    return {"root": root, "arms": arms, "elbows": elbows, "legs": legs,
+            "knees": knees, "mouths": mouths, "brows": brows}
 
 
 def main():
