@@ -4,7 +4,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from studio.svg_character_assets import SVG_NS, prepare_svg_cast
+from studio.svg_character_assets import SVG_NS, prepare_named_character_svg, prepare_svg_cast
 
 
 class SvgCharacterAssetsTests(unittest.TestCase):
@@ -92,6 +92,28 @@ class SvgCharacterAssetsTests(unittest.TestCase):
                 self.assertGreater(rig["joints"]["left_ankle"][1], rig["joints"]["left_knee"][1])
                 self.assertTrue((output / f"{character_id}.rig_layers.svg").is_file())
                 self.assertTrue((output / f"{character_id}.svg").is_file())
+
+    def test_extracts_original_named_character_from_model_sheet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ns = f"{{{SVG_NS}}}"
+            svg = ET.Element(ns + "svg", {"viewBox": "0 0 1000 650"})
+            ET.SubElement(svg, ns + "rect", {"width": "1000", "height": "650", "fill": "#1d2b40"})
+            ET.SubElement(svg, ns + "text").text = "YOUSSEF — OFFICIAL MODEL SHEET"
+            group = ET.SubElement(svg, ns + "g", {"transform": "translate(280 570)", "stroke": "#171923"})
+            ET.SubElement(group, ns + "path", {"d": "M0 -170L-48 -55L-65 0", "fill": "none"})
+            ET.SubElement(group, ns + "circle", {"cy": "-465", "r": "76", "fill": "#F3D2B2"})
+            source = root / "design_sheet.svg"
+            ET.ElementTree(svg).write(source, encoding="utf-8", xml_declaration=True)
+            original = source.read_bytes()
+            output = prepare_named_character_svg(source, root / "prepared" / "youssef.svg", "youssef")
+            self.assertEqual(source.read_bytes(), original)
+            extracted = ET.parse(output).getroot()
+            self.assertEqual(extracted.get("viewBox"), "0 0 360 570")
+            self.assertEqual(len(list(extracted.iter(ns + "path"))), 1)
+            self.assertEqual(len(list(extracted.iter(ns + "circle"))), 1)
+            self.assertFalse(any(node.tag == ns + "rect" for node in extracted.iter()))
+            self.assertFalse(any(node.tag == ns + "text" for node in extracted.iter()))
 
     def test_rejects_wrong_cast_count(self):
         with tempfile.TemporaryDirectory() as tmp:
