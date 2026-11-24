@@ -20,7 +20,7 @@ jobs:
           python-version: "3.11"
       - name: Download official Tahoma2D Linux release
         run: |
-          curl -fL --retry 3 https://github.com/tahoma2d/tahoma2d/releases/download/v1.6.3/Tahoma2D-linux-gcc.deb -o /tmp/Tahoma2D-linux-gcc.deb
+          curl -fL --retry 3 https://github.com/tahoma2d/tahoma2d/releases/download/v1.6.3/Tahoma2D-linux-clang.deb -o /tmp/Tahoma2D-linux-gcc.deb
           echo "b12ae63f4580af0b094950a1ff3b6288be5702a9fec0f233b3b271c34f393386  /tmp/Tahoma2D-linux-gcc.deb" | sha256sum -c -
       - name: Install Tahoma2D and runtime dependencies
         run: |
