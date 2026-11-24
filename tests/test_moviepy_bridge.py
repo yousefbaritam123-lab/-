@@ -81,7 +81,7 @@ class MoviePyTimelineTests(unittest.TestCase):
             rendered = VideoFileClip(str(output))
             try:
                 self.assertAlmostEqual(rendered.duration, 1.0, delta=0.15)
-                self.assertEqual(rendered.size, (48, 48))
+                self.assertEqual(tuple(rendered.size), (48, 48))
             finally:
                 rendered.close()
 
