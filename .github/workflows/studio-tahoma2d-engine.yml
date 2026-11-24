@@ -28,7 +28,7 @@ jobs:
       - name: Install Tahoma2D and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool x11-utils x11-apps imagemagick libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
+          sudo apt-get install -y xvfb xdotool x11-utils x11-apps imagemagick tesseract-ocr libopengl0 libgl1 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-sync1 libxcb-xkb1
           python -m pip install --upgrade pip pillow
           sudo apt-get install -y /tmp/Tahoma2D-linux-gcc.deb
           dpkg -L tahoma2d | tee /tmp/tahoma2d-files.txt
@@ -102,6 +102,7 @@ jobs:
           export DISPLAY=:99
           Xvfb :99 -screen 0 1600x1000x24 >/tmp/xvfb.log 2>&1 &
           XVFB_PID=$!
+          APP_PID=""
           trap 'kill "$APP_PID" "$XVFB_PID" 2>/dev/null || true' EXIT
           sleep 2
           tahoma2d >/tmp/tahoma2d-gui.log 2>&1 &
@@ -129,33 +130,48 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Tahoma2D 1.6 documents File -> Run Script... directly (not File -> Script submenu).
-          # Use the Qt menu keyboard navigation, then enter the absolute script path in QFileDialog.
-          xdotool key --clearmodifiers alt+f
+          # Use the documented Script Console, not the flaky Run Script file picker.
+          # The app window is offset in the Xvfb desktop; click the visible File menu
+          # and use OCR coordinates to select the exact documented menu item.
+          xdotool mousemove 168 68 click 1
           sleep 1
-          xwd -root -silent -out /tmp/tahoma2d-file-menu-open.png.xwd
-          convert /tmp/tahoma2d-file-menu-open.png.xwd /tmp/tahoma2d-file-menu-open.png
-          xdotool key --clearmodifiers r
-          sleep 1
-          xdotool key Return
-          DIALOG=""
-          for i in $(seq 1 20); do
-            DIALOG=$(xdotool search --onlyvisible --name '.*[Rr]un.*[Ss]cript.*' 2>/dev/null | head -1 || true)
-            [ -n "$DIALOG" ] && break
-            sleep 1
-          done
-          if [ -z "$DIALOG" ]; then
-            xwininfo -root -tree || true
-            import -window root /tmp/tahoma2d-run-script-dialog-missing.png || true
-            cat /tmp/tahoma2d-gui.log || true
-            echo "Tahoma2D File -> Run Script did not open a script picker."
+          import -window root /tmp/tahoma2d-file-menu-open.png
+          tesseract /tmp/tahoma2d-file-menu-open.png stdout tsv > /tmp/tahoma2d-file-menu.tsv
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          rows = list(csv.DictReader(Path("/tmp/tahoma2d-file-menu.tsv").open(), delimiter="\\t"))
+          tokens = [r for r in rows if r.get("text", "").strip()]
+          match = None
+          for i in range(len(tokens)):
+              phrase = " ".join(x["text"].strip() for x in tokens[i:i+5]).lower()
+              if "open script console" in phrase:
+                  match = tokens[i:i+5]
+                  break
+          if match is None:
+              print("OCR menu tokens:", [x["text"] for x in tokens])
+              raise SystemExit("Could not locate the documented Open Script Console menu item")
+          left = min(int(x["left"]) for x in match)
+          top = min(int(x["top"]) for x in match)
+          right = max(int(x["left"])+int(x["width"]) for x in match)
+          bottom = max(int(x["top"])+int(x["height"]) for x in match)
+          print("SCRIPT_CONSOLE_MENU_BOUNDS", left, top, right, bottom)
+          Path("/tmp/tahoma2d-console-menu-click.txt").write_text(
+              f"{(left+right)//2} {(top+bottom)//2}\\n", encoding="utf-8")
+          PY
+          read MENU_X MENU_Y < /tmp/tahoma2d-console-menu-click.txt
+          xdotool mousemove "$MENU_X" "$MENU_Y" click 1
+          sleep 3
+          import -window root /tmp/tahoma2d-script-console-open.png
+          tesseract /tmp/tahoma2d-script-console-open.png stdout > /tmp/tahoma2d-console-screen.txt
+          grep -qi "script console" /tmp/tahoma2d-console-screen.txt || {
+            cat /tmp/tahoma2d-console-screen.txt
+            echo "Tahoma2D Script Console did not become visible."
             exit 1
-          fi
-          xdotool windowfocus "$DIALOG"
-          sleep 1
-          xdotool key --clearmodifiers ctrl+l
-          sleep 1
-          xdotool type --clearmodifiers --delay 1 "$SCRIPT_DIR/create_native_scene.js"
+          }
+          SCRIPT_PATH="/tmp/youssef-tahoma2d-pilot/production/tahoma2d/authoring/create_native_scene.js"
+          xdotool key --clearmodifiers ctrl+end
+          xdotool type --clearmodifiers --delay 1 "run(\\\"$SCRIPT_PATH\\\")"
           xdotool key Return
           sleep 15
           SCENE=/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz
