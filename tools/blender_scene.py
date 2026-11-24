@@ -167,7 +167,10 @@ def set_viseme(actor, shape, frame):
     for name, obj in actor.get("mouths", {}).items():
         obj.hide_render = name != shape
         obj.keyframe_insert(data_path="hide_render", frame=frame)
-\n\ndef build_character(actor, profile, width, height):
+
+
+
+def build_character(actor, profile, width, height):
     actor_id = str(actor["id"])
     appearance = dict(profile.get("appearance", {}))
     appearance.update(actor.get("appearance", {}))
