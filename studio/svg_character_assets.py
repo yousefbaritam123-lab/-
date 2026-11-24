@@ -188,6 +188,18 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             },
             "source_artwork_changed": False,
         }
+        rig_layers_path = output_dir / f"{character_id}.rig_layers.svg"
+        rig_root = ET.Element(_tag("svg"), {"width": "200", "height": "220", "viewBox": "0 0 200 220", "version": "1.1"})
+        rig_outer = ET.SubElement(rig_root, _tag("g"), {"transform": f"translate({-column * 200} {-row * 200})"})
+        rig_inner = ET.SubElement(rig_outer, _tag("g"), {key: value for key, value in group.attrib.items() if key != "id"})
+        for part_id, part_element in articulated_parts:
+            part_group = ET.SubElement(rig_inner, _tag("g"), {"id": part_id})
+            part_group.append(part_element)
+        ET.ElementTree(rig_root).write(rig_layers_path, encoding="utf-8", xml_declaration=True)
+        rig["articulated_layers_svg"] = rig_layers_path.name
+        rig["articulated_layer_ids"] = [part_id for part_id, _ in articulated_parts]
+        rig["articulation_status"]["arms"] = "left_and_right_arm_subpaths_exported; elbow segmentation still required"
+        rig["articulation_status"]["feet"] = "left_and_right_feet_exported" if any(part_id.startswith("foot_") for part_id, _ in articulated_parts) else "not_split"
         rig_path = output_dir / f"{character_id}.rig.json"
         rig_path.write_text(json.dumps(rig, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         target = output_dir / f"{character_id}.svg"
