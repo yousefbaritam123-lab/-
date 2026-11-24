@@ -171,36 +171,42 @@ def prepare_tahoma2d_episode(project_dir: Path, character_ids: list[str] | None 
             for character_id in character_ids
         )
     if named_ids:
-        from .svg_character_assets import prepare_named_character_svg
+        from .svg_character_assets import prepare_named_character_layers
         for character_id in named_ids:
             source = project_dir / "assets" / "characters" / character_id / "design_sheet.svg"
             if not source.is_file():
                 raise FileNotFoundError(source)
             target = output_root / character_id
-            if target.exists() and any(target.iterdir()):
-                raise FileExistsError(f"Tahoma2D output already exists: {target}")
-            target.mkdir(parents=True, exist_ok=True)
-            cropped = target / "full_character_reference.svg"
-            prepare_named_character_svg(source, cropped, character_id)
+            layer_manifest_path = prepare_named_character_layers(
+                source, target, character_id
+            )
+            layer_manifest = json.loads(layer_manifest_path.read_text(encoding="utf-8"))
             manifest = {
                 "schema_version": 1,
                 "engine": "Tahoma2D",
                 "character_id": character_id,
                 "source_art_preserved": True,
-                "reference_art": cropped.name,
-                "rigging_status": "reference_only_manual_layering_and_plastic_skeleton_required",
-                "known_gaps": [
-                    "This source has not yet been separated into independently moving body-part layers.",
-                    "No anatomical joint map is inferred for this named character.",
-                    "Create and save the Plastic mesh/skeleton in Tahoma2D after inspecting the source artwork.",
-                ],
+                "reference_art": layer_manifest["full_character_reference"],
+                "source_design_sheet": layer_manifest["source_design_sheet"],
+                "canvas": layer_manifest["canvas"],
+                "layers": layer_manifest["layers"],
+                "layer_count": layer_manifest["layer_count"],
+                "joints": layer_manifest["joints"],
+                "bones": layer_manifest["bones"],
+                "rigging_status": layer_manifest["rigging_status"],
+                "known_gaps": layer_manifest["known_gaps"],
             }
             manifest_path = target / "tahoma2d_character_manifest.json"
-            manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            manifest_path.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
             (target / "TAHOMA2D_IMPORT_GUIDE.md").write_text(
                 "# Tahoma2D named-character import\n\n"
-                "Import full_character_reference.svg as a vector level. Inspect the artwork and manually create clean layers before building a Plastic mesh/skeleton. "
-                "Do not claim this reference-only package is a completed cut-out rig. Save the native scene from Tahoma2D.\n",
+                "Import the individual SVG levels or rig_layers.svg. They share one canvas and preserve the original source coordinates. "
+                "The arm and leg strokes were separated only at vertices already present in the source paths. "
+                "Use the manifest joint landmarks to build the Plastic mesh and skeleton, then save a genuine native .tnz scene. "
+                "Do not claim the Plastic rig is complete until the neutral pose, wave and walk tests pass.\n",
                 encoding="utf-8",
             )
             outputs.append(manifest_path)
