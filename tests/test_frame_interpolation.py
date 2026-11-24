@@ -41,7 +41,7 @@ class FrameInterpolationTests(unittest.TestCase):
         self.assertEqual(result.name, "episode-60fps.mp4")
         self.assertTrue(result.is_file())
         first_command = run.call_args_list[0].args[0]
-        self.assertIn("minterpolate=fps=60", first_command)
+        self.assertIn("minterpolate=fps=60", first_command[first_command.index("-vf") + 1])
         self.assertTrue(any("-f" in call.args[0] for call in run.call_args_list))
 
     @patch("imageio_ffmpeg.get_ffmpeg_exe", return_value="ffmpeg")
