@@ -18,7 +18,7 @@ def _remove_background(source: Path, destination: Path) -> None:
     with Image.open(source) as image:
         remove(image.convert("RGBA")).save(destination, "PNG")
 
-def _pose_landmarks(image_path: Path) -> list[dict[str, Any]]:
+def _pose_landmarks(image_path: Path, segmentation_path: Path | None = None) -> list[dict[str, Any]]:
     try:
         import mediapipe as mp
         import cv2
@@ -30,8 +30,13 @@ def _pose_landmarks(image_path: Path) -> list[dict[str, Any]]:
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     pose_api = mp.solutions.pose
     with pose_api.Pose(static_image_mode=True, model_complexity=1,
-                       enable_segmentation=False, min_detection_confidence=0.5) as pose:
+                       enable_segmentation=True, min_detection_confidence=0.5) as pose:
         result = pose.process(rgb)
+    if segmentation_path is not None and result.segmentation_mask is not None:
+        import numpy as np
+        from PIL import Image
+        mask = np.clip(result.segmentation_mask * 255.0, 0, 255).astype("uint8")
+        Image.fromarray(mask, mode="L").save(segmentation_path, format="PNG")
     if not result.pose_landmarks:
         return []
     landmarks = result.pose_landmarks.landmark
@@ -48,10 +53,15 @@ def prepare_character_image(source: Path, output_dir: Path, character_id: str) -
     output_dir.mkdir(parents=True, exist_ok=True)
     cutout = output_dir / f"{character_id}_cutout.png"
     _remove_background(source, cutout)
+    segmentation_mask = output_dir / f"{character_id}_person_mask.png"
+    landmarks = _pose_landmarks(cutout, segmentation_mask)
     manifest = {
-        "schema_version": 1, "id": character_id, "source_image": source.name,
-        "cutout": cutout.name, "coordinate_space": "normalized_image_0_to_1",
-        "pose_landmarks": _pose_landmarks(cutout),
+        "schema_version": 2, "id": character_id, "source_image": source.name,
+        "cutout": cutout.name,
+        "segmentation_mask": segmentation_mask.name if segmentation_mask.is_file() else None,
+        "coordinate_space": "normalized_image_0_to_1",
+        "pose_detector": "mediapipe_pose_with_optional_person_segmentation",
+        "pose_landmarks": landmarks,
         "rig_status": "needs_manual_layer_separation_and_rig_review",
         "required_manual_work": [
             "separate head, torso, upper/lower arms, hands, upper/lower legs and feet",
