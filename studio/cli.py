@@ -389,6 +389,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Interpolated video created: {output}")
         print("Note: interpolation improves temporal smoothness only; it does not repair source animation.")
         return 0
+    if args.command == "tahoma2d-prepare":
+        from .tahoma2d_bridge import prepare_tahoma2d_episode
+        try:
+            outputs = prepare_tahoma2d_episode(args.project, args.characters)
+        except Exception as exc:
+            print("TAHOMA2D CHARACTER PREPARATION FAILED: " + str(exc))
+            return 1
+        for output in outputs:
+            print(f"Tahoma2D character package created: {output}")
+        print("Note: source artwork is preserved; native Plastic rigging and .tnz authoring are separate verified steps.")
+        return 0
     if args.command == "tahoma2d-render":
         from .tahoma2d_runtime import render_tahoma2d_scene
         try:
