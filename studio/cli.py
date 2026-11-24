@@ -101,7 +101,8 @@ def doctor() -> int:
         "pnpm": shutil.which("pnpm") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
         "Piper (optional local TTS)": shutil.which("piper") is not None,
-        "Tahoma2D batch renderer": shutil.which("tcomposer") is not None,\n        "Tahoma2D desktop app": shutil.which("tahoma2d") is not None,\n        "Blender (legacy optional backend)": shutil.which("blender") is not None,
+        "Tahoma2D batch renderer": shutil.which("tcomposer") is not None,
+        "Tahoma2D desktop app": shutil.which("tahoma2d") is not None,\n        "Blender (legacy optional backend)": shutil.which("blender") is not None,
         "OpenTimelineIO (optional editorial)": _module_available("opentimelineio"),
         "OpenCV (optional vision)": _module_available("cv2"),
     }
