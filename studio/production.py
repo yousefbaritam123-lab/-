@@ -18,7 +18,7 @@ from PIL import Image, ImageStat
 from .models import read_json, validate_episode
 from .continuity import validate_continuity
 from .renderer import render_episode_frames
-from .quality import certify_delivery
+from .quality import certify_delivery, inspect_audio_mix
 
 
 def _stamp() -> str:
@@ -67,7 +67,7 @@ def _frame_audit(project_dir: Path, episode: dict[str, Any]) -> dict[str, Any]:
     exact_duplicate_frames = sum(count - 1 for count in hashes.values() if count > 1)
     return {
         "expected_frames": total,
-        "verified_frames": total - len(missing) - len(corrupt) - len(wrong_size),
+        "verified_frames": total - len(missing) - len(corrupt) - len(wrong_size) - len(blank),
         "missing": missing,
         "corrupt": corrupt,
         "wrong_dimensions": wrong_size,
@@ -110,15 +110,33 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
 
     for round_no in range(1, max_repair_rounds + 1):
         render_start = time.monotonic()
-        folder, rendered = render_episode_frames(project_dir, 0, total, resume=True)
+        render_error = None
+        rendered = 0
+        folder = project_dir / "renders" / "frames"
+        try:
+            folder, rendered = render_episode_frames(project_dir, 0, total, resume=True)
+        except Exception as exc:
+            # A failed frame must not abort the whole repair team. The audit below
+            # identifies incomplete/corrupt outputs; the next round resumes only
+            # after those defective files have been removed.
+            render_error = f"{type(exc).__name__}: {exc}"
         render_seconds = round(time.monotonic() - render_start, 2)
-        final_audit = _frame_audit(project_dir, episode)
+        try:
+            final_audit = _frame_audit(project_dir, episode)
+        except Exception as exc:
+            final_audit = {
+                "expected_frames": total, "verified_frames": 0,
+                "missing": list(range(total)), "corrupt": [], "wrong_dimensions": [],
+                "blank_or_near_blank": [], "exact_duplicate_frames": 0,
+                "audit_error": f"{type(exc).__name__}: {exc}",
+            }
         defects = sorted(set(final_audit["missing"] + final_audit["corrupt"] +
                              final_audit["wrong_dimensions"] + final_audit["blank_or_near_blank"]))
         rounds.append({
             "round": round_no,
             "rendered_frames": rendered,
             "render_seconds": render_seconds,
+            "render_error": render_error,
             "audit": final_audit,
             "repair_candidates": defects,
             "status": "passed" if not defects else "repair_required",
@@ -139,10 +157,17 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
 
     dialogue = [line for shot in episode.get("shots", []) for line in shot.get("dialogue", [])]
     final_mix = project_dir / "audio" / "final_mix.wav"
-    if dialogue and not final_mix.is_file():
-        hard_errors.append("Dialogue exists in the script but audio/final_mix.wav is missing")
-    if not dialogue and not final_mix.is_file():
-        hard_errors.append("Final audio mix is missing")
+    if not final_mix.is_file():
+        hard_errors.append(
+            "Dialogue exists in the script but audio/final_mix.wav is missing"
+            if dialogue else "Final audio mix is missing"
+        )
+    else:
+        audio_ok, audio_error = inspect_audio_mix(
+            final_mix, float(fmt["duration_seconds"])
+        )
+        if not audio_ok:
+            hard_errors.append(audio_error)
 
     # A deterministic engine cannot judge acting, anatomy, continuity aesthetics,
     # Arabic performance, or whether a joke/emotion lands. A human visual sign-off
@@ -172,6 +197,10 @@ def run_production(project_dir: Path, *, max_repair_rounds: int = 3) -> dict[str
         "quality_policy": {
             "dialogue_timing_and_speaker_validation": True,
             "all_frames_must_decode": True,
+            "per_frame_retry_and_png_decode": True,
+            "automatic_repair_of_missing_corrupt_wrong_size_and_blank_frames": True,
+            "final_audio_wav_integrity_and_duration": True,
+            "atomic_mp4_encode_with_retry_and_full_decode": True,
             "all_frames_must_match_dimensions": True,
             "no_blank_frames": True,
             "scripted_dialogue_requires_final_mix": True,
