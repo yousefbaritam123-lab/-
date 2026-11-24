@@ -131,7 +131,7 @@ jobs:
             exit 1
           fi
           eval "$(xdotool getwindowgeometry --shell "$DIALOG")"
-          xdotool windowactivate --sync "$DIALOG"
+          xdotool windowfocus "$DIALOG"
           xdotool mousemove --window "$DIALOG" $((WIDTH / 2)) $((HEIGHT - 55)) click 1
           xdotool type --clearmodifiers --delay 1 'create_native_scene.js'
           xdotool key Tab
