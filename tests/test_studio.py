@@ -28,6 +28,8 @@ class StudioProjectTests(unittest.TestCase):
             self.assertTrue((project / "assets/motions/motion_library.json").is_file())
             self.assertTrue((project / "assets/locations/algerian_neighborhood/location.json").is_file())
             self.assertTrue((project / "production/audio_mix.template.json").is_file())
+            self.assertTrue((project / "production/voice_cast.template.json").is_file())
+            self.assertTrue((project / "assets/voices").is_dir())
             self.assertTrue((project / "audio/music").is_dir())
             self.assertTrue((project / "subtitles").is_dir())
 
