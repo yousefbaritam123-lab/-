@@ -296,48 +296,62 @@ def set_viseme(actor, shape, frame):
 
 
 
-def build_svg_character(actor, svg_path, width, height):
-    """Import the original extracted SVG drawing as the actor artwork.
+def build_raster_character(actor, png_path, width, height):
+    """Place a transparent, high-resolution render of the exact source SVG art.
 
-    No replacement body is drawn here. The original SVG's fills, outlines,
-    clothing, hair and face are imported as Blender curve objects and grouped
-    under a transform root. This first integration animates the complete
-    source drawing; per-limb pivot animation is a separate next rig stage.
+    Blender's SVG importer drops several open SVG strokes. The bridge therefore
+    rasterizes the source SVG at 3x in CairoSVG, preserving every line and fill,
+    then displays that artwork on a transparent emission plane.
     """
-    svg_path = Path(svg_path)
-    if not svg_path.is_file():
-        raise FileNotFoundError(f"Original SVG character artwork missing: {svg_path}")
-    if not hasattr(bpy.ops.import_curve, "svg"):
-        try:
-            bpy.ops.preferences.addon_enable(module="io_curve_svg")
-        except Exception as exc:
-            raise RuntimeError("Blender SVG importer (io_curve_svg) is unavailable") from exc
-    if not hasattr(bpy.ops.import_curve, "svg"):
-        raise RuntimeError("Blender SVG importer did not register bpy.ops.import_curve.svg")
+    png_path = Path(png_path)
+    if not png_path.is_file():
+        raise FileNotFoundError(f"Original character artwork PNG missing: {png_path}")
+    image = bpy.data.images.load(str(png_path), check_existing=True)
+    if image.size[1] <= 0:
+        raise RuntimeError(f"Character artwork image has invalid dimensions: {png_path}")
+    art_height = 2.15
+    art_width = art_height * float(image.size[0]) / float(image.size[1])
 
-    before = set(bpy.data.objects)
-    bpy.ops.import_curve.svg(filepath=str(svg_path))
-    imported = [obj for obj in bpy.data.objects if obj not in before]
-    if not imported:
-        raise RuntimeError(f"Blender imported no vector objects from {svg_path.name}")
+    mat = bpy.data.materials.new("OriginalArt_" + str(actor["id"]))
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    texture = nodes.new("ShaderNodeTexImage")
+    texture.image = image
+    emission = nodes.new("ShaderNodeEmission")
+    transparent = nodes.new("ShaderNodeBsdfTransparent")
+    mix = nodes.new("ShaderNodeMixShader")
+    mat.node_tree.links.new(texture.outputs["Color"], emission.inputs["Color"])
+    mat.node_tree.links.new(texture.outputs["Alpha"], mix.inputs[0])
+    mat.node_tree.links.new(transparent.outputs["BSDF"], mix.inputs[1])
+    mat.node_tree.links.new(emission.outputs["Emission"], mix.inputs[2])
+    mat.node_tree.links.new(mix.outputs["Shader"], output.inputs["Surface"])
+    if hasattr(mat, "surface_render_method"):
+        mat.surface_render_method = "DITHERED"
+    elif hasattr(mat, "blend_method"):
+        mat.blend_method = "BLEND"
 
-    points = []
-    for obj in imported:
-        for corner in obj.bound_box:
-            points.append(obj.matrix_world @ Vector(corner))
-    if not points:
-        raise RuntimeError(f"Imported SVG has no measurable geometry: {svg_path.name}")
-    min_x = min(p.x for p in points)
-    max_x = max(p.x for p in points)
-    min_y = min(p.y for p in points)
-    max_y = max(p.y for p in points)
-    source_height = max_y - min_y
-    if source_height <= 1e-6:
-        raise RuntimeError(f"Imported SVG has zero height: {svg_path.name}")
-    factor = 2.15 / source_height
-    center_x = (min_x + max_x) * 0.5
+    mesh = bpy.data.meshes.new("OriginalArtMesh_" + str(actor["id"]))
+    mesh.from_pydata([
+        (-art_width * 0.5, 0.0, 0.0),
+        ( art_width * 0.5, 0.0, 0.0),
+        ( art_width * 0.5, art_height, 0.0),
+        (-art_width * 0.5, art_height, 0.0),
+    ], [], [(0, 1, 2, 3)])
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    uv_by_vertex = {0: (0.0, 0.0), 1: (1.0, 0.0), 2: (1.0, 1.0), 3: (0.0, 1.0)}
+    for polygon in mesh.polygons:
+        for loop_index in polygon.loop_indices:
+            vertex_index = mesh.loops[loop_index].vertex_index
+            uv_layer.data[loop_index].uv = uv_by_vertex[vertex_index]
+    obj = bpy.data.objects.new("OriginalArtwork_" + str(actor["id"]), mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    obj.location.z = 0.22
 
-    root = bpy.data.objects.new("ActorSVG_" + str(actor["id"]), None)
+    root = bpy.data.objects.new("ActorOriginalArt_" + str(actor["id"]), None)
     bpy.context.scene.collection.objects.link(root)
     root.empty_display_type = "CIRCLE"
     root.empty_display_size = 0.35
@@ -346,16 +360,10 @@ def build_svg_character(actor, svg_path, width, height):
     root.location = ((x - width * 0.5) / 100.0, (height * 0.5 - y) / 100.0, 0)
     actor_scale = float(actor.get("scale", 1.0))
     root.scale = (actor_scale, actor_scale, actor_scale)
-
-    normalize = Matrix.Translation(Vector((-center_x * factor, -min_y * factor, 0.0))) @ Matrix.Scale(factor, 4)
-    for obj in imported:
-        old_world = obj.matrix_world.copy()
-        obj.parent = root
-        obj.matrix_parent_inverse = Matrix.Identity(4)
-        obj.matrix_basis = normalize @ old_world
+    obj.parent = root
     return {
         "root": root, "arms": {}, "elbows": {}, "legs": {}, "knees": {},
-        "mouths": {}, "brows": {}, "artwork_backend": "original_svg_curves",
+        "mouths": {}, "brows": {}, "artwork_backend": "original_svg_raster",
     }
 
 
@@ -554,11 +562,11 @@ def main():
         profile_id = actor.get("cast_id", actor_id)
         profile = catalog.get(profile_id, {})
         prepared_art = Path(manifest.get("prepared_cast_path", ""))
-        svg_cast_path = prepared_art / f"{profile_id}.svg"
-        if not svg_cast_path.is_file() and actor_id in {"youssef", "adam"}:
-            svg_cast_path = prepared_art / f"{actor_id}.svg"
-        if svg_cast_path.is_file():
-            actors[actor_id] = build_svg_character(actor, svg_cast_path, width, height)
+        raster_path = prepared_art / f"{profile_id}.png"
+        if not raster_path.is_file() and actor_id in {"youssef", "adam"}:
+            raster_path = prepared_art / f"{actor_id}.png"
+        if raster_path.is_file():
+            actors[actor_id] = build_raster_character(actor, raster_path, width, height)
         else:
             actors[actor_id] = build_character(actor, profile, width, height)
 
