@@ -457,6 +457,8 @@ def main():
             camera.data.keyframe_insert(data_path="ortho_scale", frame=camera_frame)
             camera.keyframe_insert(data_path="location", frame=camera_frame)
         active_location = str(shot.get("location", "default"))
+        if active_location not in location_sets:
+            active_location = next(iter(location_sets))
         for location_id, location_objects in location_sets.items():
             visible = location_id == active_location
             for obj in location_objects:
