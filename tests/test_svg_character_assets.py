@@ -65,10 +65,14 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             self.assertEqual(rig["joints"]["left_elbow"], [64.0, 133.0])
             layers = ET.parse(out / "extra_001.rig_layers.svg").getroot()
             ids = {node.get("id") for node in layers.iter(f"{{{SVG_NS}}}g")}
-            self.assertIn("arm_outline_L", ids)
-            self.assertIn("arm_outline_R", ids)
-            self.assertIn("arm_skin_L", ids)
-            self.assertIn("arm_skin_R", ids)
+            self.assertIn("upper_arm_outline_L", ids)
+            self.assertIn("forearm_outline_L", ids)
+            self.assertIn("upper_arm_outline_R", ids)
+            self.assertIn("forearm_outline_R", ids)
+            self.assertIn("upper_arm_skin_L", ids)
+            self.assertIn("forearm_skin_L", ids)
+            self.assertIn("upper_arm_skin_R", ids)
+            self.assertIn("forearm_skin_R", ids)
             self.assertFalse(rig["source_artwork_changed"])
 
     def test_real_repository_cast_extracts_all_60_with_joint_maps(self):
