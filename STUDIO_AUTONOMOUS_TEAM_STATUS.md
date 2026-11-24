@@ -1,6 +1,6 @@
 # Youssef Studio Pro — Verified Capability & Gap Report
 
-Last checked: 2026-11-23  
+Last checked: 2026-11-24  
 Working branch: `studio-pro-foundation`  
 Protected branch: `main` (not modified)
 
@@ -21,7 +21,7 @@ Protected branch: `main` (not modified)
 | Character design | Resolve cast catalog variants, palette and proportions; prepare a still-image cutout and landmark manifest | Automatic limb segmentation, hidden-pixel reconstruction and final rigging are not solved |
 | Lip sync | Convert real dialogue audio through external Rhubarb into mouth-cue timelines | Requires Rhubarb installed and recorded/generated voice audio |
 | Background/effects | Render procedural locations and deterministic cinematic effects | Not a complete hand-painted environment library |
-| Blender | Import manually layered transparent character parts as a 2D puppet armature | Does not yet convert the Studio motion timeline into finished Blender action keyframes |
+| Blender | Procedural 2D character puppets; location-specific sets; per-shot camera and staging; arm/leg plus elbow/knee keyframes; facial expressions; Rhubarb visemes; PNG sequence and MP4 output | Still lacks full constraint-based IK, planted-foot/contact solving, robust hand poses, and production-grade deformation |
 | Sound/editing | Encode MP4 and mux `audio/final_mix.wav` when supplied | No autonomous voice acting, music composition or Foley generation |
 
 ## Current motion catalogue
@@ -47,7 +47,7 @@ python -m studio.cli encode projects/episode-001
 Optional tools:
 - Install Rhubarb and add it to PATH for audio-driven mouth cues.
 - Install the optional image dependencies listed in `requirements-optional.txt` for cutout/landmark preparation.
-- Install Blender separately for layered puppet import.
+- Install Blender separately for the procedural 2D animation backend (`blender-render`).
 
 ## Remaining blockers before calling this a full autonomous studio
 
@@ -55,8 +55,17 @@ Optional tools:
 2. Automatic conversion of the director storyboard into a validated render-ready episode file, including complete dialogue and continuity approval.
 3. A substantially larger, polished animation-take library: walk cycles in multiple directions, turns, sitting, hand-object interaction, two-character contact, falls and recovery, with proper transitions.
 4. Robust image-to-puppet segmentation, hidden-region reconstruction, pivot placement and a reusable hand-pose library.
-5. Blender action/keyframe integration or an equivalent richer 2D animation backend.
+5. Blender constraint-based IK, planted-foot/contact solving, retargeting and richer facial/hand animation.
 6. Voice generation/recording workflow, automatic Rhubarb lip sync attachment, ambience/Foley/music mixing and final loudness checks.
 7. Full acceptance render: 100 seconds × 30 fps = 3,000 frames at 1080×1920, followed by visual QC and MP4 verification.
 
 Do not describe the system as a fully autonomous professional studio until the above acceptance tests pass. The 15-second pilot proves the rendering path works; it does not prove full-episode quality or 1080×1920 performance.
+
+
+## Latest engineering update — 2026-11-24
+
+- Blender puppets now retain independent elbow and knee pivots, rather than rotating only shoulders and hips.
+- Walk/run cycles animate elbow bend and knee lift; acting poses apply action-specific elbow bends and kick/jump knee poses.
+- Hands include simple separated finger and thumb strokes for a clearer silhouette; these are not yet a reusable anatomical hand-pose system.
+- The Blender syntax test now checks for the independent pivots and finger controls.
+- Latest Python and Blender CI runs are in progress on commit `ad8704a4b1cf9eb200bc0a312445b0dc646f6ee2`; do not treat the new Blender animation changes as accepted until the real Blender render workflow passes and its artifact is visually inspected.
