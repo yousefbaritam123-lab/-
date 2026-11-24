@@ -65,6 +65,22 @@ class RendererTests(unittest.TestCase):
             self.assertEqual(rendered, 1)
             self.assertGreater((frame_dir / "frame_000000.png").stat().st_size, 1000)
 
+    def test_frame_render_retries_transient_failure_and_verifies_png(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "episode"
+            init_project(project)
+            real_render = render_frame
+            with patch("studio.renderer.render_frame",
+                       side_effect=[RuntimeError("temporary renderer fault"), real_render]) as mocked:
+                folder, rendered = render_episode_frames(
+                    project, start_frame=0, max_frames=1, frame_retries=1
+                )
+            self.assertEqual(rendered, 1)
+            self.assertEqual(mocked.call_count, 2)
+            with open(folder / "frame_000000.png", "rb") as stream:
+                self.assertEqual(stream.read(8), b"\\x89PNG\\r\\n\\x1a\\n")
+
     def test_resume_skips_existing_frames_and_repairs_empty_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "episode"
