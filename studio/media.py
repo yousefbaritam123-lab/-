@@ -49,14 +49,17 @@ def encode_video(project_dir: Path, fps: int = 30, output_name: str = "episode.m
         ffmpeg, "-y", "-hide_banner", "-v", "error", "-xerror",
         "-framerate", str(fps), "-start_number", "0",
         "-i", str(frames / "frame_%06d.png"),
-        "-frames:v", str(expected), "-c:v", "libx264",
-        "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
     ]
     if audio_mix.is_file():
+        base_command.extend(["-i", str(audio_mix)])
+    base_command.extend([
+        "-frames:v", str(expected), "-map", "0:v:0", "-c:v", "libx264",
+        "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+    ])
+    if audio_mix.is_file():
         base_command.extend([
-            "-i", str(audio_mix), "-map", "0:v:0", "-map", "1:a:0",
-            "-c:a", "aac", "-b:a", "192k", "-af", "apad", "-t",
-            f"{expected / fps:.3f}",
+            "-map", "1:a:0", "-c:a", "aac", "-b:a", "192k",
+            "-af", "apad", "-t", f"{expected / fps:.3f}",
         ])
 
     failures: list[str] = []
