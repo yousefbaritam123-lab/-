@@ -15,6 +15,17 @@ class CharacterRigTests(unittest.TestCase):
         self.assertGreater(first["left_leg"], -20)
         self.assertLess(first["left_leg"], 20)
 
+    def test_loop_interpolates_across_last_to_first_keyframe(self):
+        clip = {"clips": {"cycle": {"duration": 1.0, "loop": True, "keyframes": [
+            {"at": 0.25, "pose": {"left_arm": 0}},
+            {"at": 0.75, "pose": {"left_arm": 100}},
+        ]}}}
+        before_seam = sample_motion("cycle", 0.99, clip)["left_arm"]
+        after_seam = sample_motion("cycle", 0.01, clip)["left_arm"]
+        self.assertLess(abs(before_seam - after_seam), 5.0)
+        self.assertGreater(before_seam, 0.0)
+        self.assertLess(after_seam, 100.0)
+
     def test_skeleton_uses_character_proportions(self):
         pose = sample_motion("idle", 0)
         standard = build_skeleton(pose)
