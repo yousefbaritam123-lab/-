@@ -15,6 +15,7 @@ def build_blender_manifest(project_dir: Path) -> Path:
     episode = json.loads(episode_path.read_text(encoding="utf-8"))
     manifest = {
         "schema_version": 2,
+        "backend": "blender_procedural_2d",
         "episode_id": episode["id"],
         "format": episode["format"],
         "locations": episode.get("locations", []),
@@ -62,10 +63,10 @@ def render_with_blender(project_dir: Path, *, blender: str = "blender",
     expected = int(round(float(fmt["duration_seconds"]) * int(fmt["fps"])))
     from PIL import Image
     errors: list[str] = []
-    frame_paths = [frames_dir / f"frame_{index:06d}.png" for index in range(expected)]
+    frame_paths = [frames_dir / f"frame_{index + 1:06d}.png" for index in range(expected)]
     for index, path in enumerate(frame_paths):
         if not path.is_file():
-            errors.append(f"missing frame {index}")
+            errors.append(f"missing frame {index + 1}")
             continue
         try:
             with Image.open(path) as image:
