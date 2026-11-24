@@ -26,7 +26,7 @@ class IterativeProductionTests(unittest.TestCase):
             audio.setnchannels(2)
             audio.setsampwidth(3)
             audio.setframerate(48000)
-            audio.writeframes(b"\\x00" * (48000 * 2 * 6))
+            audio.writeframes(b"\x00" * (48000 * 2 * 6))
         approval = {
             "episode_id": episode["id"], "approved": True,
             "reviewer": "QA reviewer", "notes": "Inspected the full contact sheet and playback."
