@@ -26,6 +26,8 @@ class QualityGateTests(unittest.TestCase):
         folder.mkdir(parents=True)
         for n in range(30):
             image = Image.new("RGB", (240, 426), (30+n, 70, 110))
+            from PIL import ImageDraw
+            ImageDraw.Draw(image).rectangle((20, 20, 90+n, 180), fill=(190, 130, 70))
             image.save(folder / f"frame_{n:06d}.png")
 
     def approve_and_add_audio(self, project):
@@ -46,7 +48,7 @@ class QualityGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             p = self.project(tmp)
             self.frames(p)
-            Image.new("RGB", (10, 10), (1, 2, 3)).save(p / "renders/frames/frame_000017.png")
+            Image.new("RGB", (120, 180), (30, 70, 110)).save(p / "renders/frames/frame_000017.png")
             report = audit_episode(p)
             self.assertTrue(any("incorrect dimensions" in e for e in report["errors"]))
 
