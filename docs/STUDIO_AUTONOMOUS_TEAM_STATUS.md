@@ -22,6 +22,7 @@ This status distinguishes working software from planned departments. A library b
 ```powershell
 python -m studio.cli doctor
 python -m studio.cli script-qa projects/episode-001
+python -m studio.cli voice-generate projects/episode-001
 python -m studio.cli audio-mix projects/episode-001
 python -m studio.cli subtitles projects/episode-001
 python -m studio.cli edit-plan projects/episode-001
