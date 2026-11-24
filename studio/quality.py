@@ -238,11 +238,28 @@ def certify_delivery(project_dir: Path) -> Path:
         stream = streams[0]
         if (stream.get("width"), stream.get("height")) != (episode["format"]["width"], episode["format"]["height"]):
             raise RuntimeError("Final video dimensions do not match episode settings")
+        expected_fps = int(episode["format"]["fps"])
+        rate = stream.get("avg_frame_rate", "0/1")
+        try:
+            numerator, denominator = rate.split("/", 1)
+            actual_fps = float(numerator) / float(denominator)
+        except (ValueError, ZeroDivisionError):
+            actual_fps = 0.0
+        if abs(actual_fps - expected_fps) > 0.01:
+            raise RuntimeError(f"Video frame rate mismatch: {actual_fps:g} fps vs {expected_fps} fps")
+        expected_frames = int(round(float(episode["format"]["duration_seconds"]) * expected_fps))
+        if stream.get("nb_frames") not in (None, "N/A") and int(stream["nb_frames"]) != expected_frames:
+            raise RuntimeError(
+                f"Video frame count mismatch: {stream['nb_frames']} vs {expected_frames}"
+            )
+        audio_streams = [s for s in data.get("streams", []) if s.get("codec_name") == "aac"]
+        if not audio_streams:
+            raise RuntimeError("Final MP4 is missing its required AAC audio stream")
         actual = float(data.get("format", {}).get("duration", 0))
         expected = float(episode["format"]["duration_seconds"])
         if abs(actual - expected) > 0.15:
             raise RuntimeError(f"Video duration mismatch: {actual:.3f}s vs {expected:.3f}s")
-        verification = "H.264, dimensions and duration verified"
+        verification = "H.264/AAC, frame rate, frame count, dimensions and duration verified"
 
     manifest = {
         "episode_id": episode["id"],
