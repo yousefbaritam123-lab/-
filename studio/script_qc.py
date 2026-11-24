@@ -15,6 +15,7 @@ def audit_dialogue(project_dir: Path) -> dict[str, Any]:
     total_lines = 0
     total_words = 0
     timed_words = 0
+    timed_seconds = 0.0
     elapsed = 0.0
     shot_reports = []
     for shot in episode.get("shots", []):
@@ -48,6 +49,7 @@ def audit_dialogue(project_dir: Path) -> dict[str, Any]:
                 errors.append(f"{shot_id} line {index}: timing {start:.2f}-{end:.2f}s is outside shot duration {duration:.2f}s")
                 continue
             timed_words += words
+            timed_seconds += end - start
             intervals.setdefault(speaker, []).append((start, end, index))
             rate = words / max(end - start, 0.01)
             if rate > 5.5:
@@ -79,7 +81,7 @@ def audit_dialogue(project_dir: Path) -> dict[str, Any]:
         "timed_word_count": timed_words,
         "shot_count": len(shot_reports),
         "duration_seconds": elapsed,
-        "average_words_per_second": round(timed_words / max(elapsed, 0.001), 2),
+        "average_words_per_second": round(timed_words / max(timed_seconds, 0.001), 2),
         "status": "failed" if errors else ("passed_with_warnings" if warnings else "passed"),
         "errors": errors,
         "warnings": warnings,
