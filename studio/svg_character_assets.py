@@ -161,7 +161,7 @@ def prepare_named_character_layers(
                         joints[f"{'left' if side == 'L' else 'right'}_hip"] = list(points[0])
                         joints[f"{'left' if side == 'L' else 'right'}_knee"] = list(points[1])
                         joints[f"{'left' if side == 'L' else 'right'}_ankle"] = list(points[2])
-            elif fill == "none" and len(parsed) == 1 and len(parsed[0]) == 2 and stroke_width >= 24:
+            elif len(parsed) == 1 and len(parsed[0]) == 2 and stroke_width >= 24:
                 points = parsed[0]
                 torso = ET.fromstring(ET.tostring(child, encoding="unicode"))
                 layers.append(("torso_centerline", torso, {
@@ -171,7 +171,7 @@ def prepare_named_character_layers(
                 joints["neck"] = list(points[-1])
                 joints["pelvis"] = list(points[0])
                 bones.append({"name": "torso", "parent": "neck", "child": "pelvis"})
-            elif fill == "none" and len(parsed) == 2 and all(len(points) == 2 for points in parsed):
+            elif len(parsed) == 2 and all(len(points) == 2 for points in parsed) and stroke_width >= 18:
                 for points in parsed:
                     side = "L" if sum(point[0] for point in points) / 2 < 0 else "R"
                     part = ET.Element(_tag("path"), dict(child.attrib))
