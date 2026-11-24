@@ -79,7 +79,7 @@ class RendererTests(unittest.TestCase):
             self.assertEqual(rendered, 1)
             self.assertEqual(mocked.call_count, 2)
             with open(folder / "frame_000000.png", "rb") as stream:
-                self.assertEqual(stream.read(8), b"\\x89PNG\\r\\n\\x1a\\n")
+                self.assertEqual(stream.read(8), b"\x89PNG\r\n\x1a\n")
 
     def test_resume_skips_existing_frames_and_repairs_empty_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
