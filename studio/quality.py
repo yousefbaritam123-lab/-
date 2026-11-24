@@ -226,7 +226,7 @@ def certify_delivery(project_dir: Path) -> Path:
     if ffprobe:
         result = subprocess.run(
             [ffprobe, "-v", "error", "-show_entries",
-             "format=duration:stream=codec_name,width,height", "-of", "json", str(output)],
+             "format=duration:stream=codec_name,width,height,avg_frame_rate,nb_frames", "-of", "json", str(output)],
             capture_output=True, text=True,
         )
         if result.returncode:
