@@ -96,10 +96,19 @@ def render_with_blender(project_dir: Path, *, blender: str = "blender",
     encode = [
         ffmpeg, "-y", "-framerate", str(int(fmt["fps"])),
         "-start_number", "1", "-i", str(frames_dir / "frame_%06d.png"),
-        "-frames:v", str(expected), "-c:v", "libx264", "-preset", "medium",
-        "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-        str(output_video),
+        "-frames:v", str(expected),
     ]
+    audio_mix = project_dir / "audio" / "final_mix.wav"
+    if audio_mix.is_file():
+        encode.extend([
+            "-i", str(audio_mix), "-map", "0:v:0", "-map", "1:a:0",
+            "-c:a", "aac", "-b:a", "192k", "-af", "apad",
+            "-t", f"{float(fmt['duration_seconds']):.3f}",
+        ])
+    encode.extend([
+        "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output_video),
+    ])
     result = subprocess.run(encode, capture_output=True, text=True, check=False)
     if result.returncode:
         raise RuntimeError("Blender MP4 encoding failed:\n" + result.stderr[-5000:])
