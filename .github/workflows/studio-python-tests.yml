@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1
       - name: Install renderer dependency
-        run: python -m pip install --disable-pip-version-check skia-python Pillow imageio-ffmpeg
+        run: python -m pip install --disable-pip-version-check skia-python Pillow imageio-ffmpeg CairoSVG
       - name: Run production manager and renderer tests
         run: python -m unittest discover -s tests -v
       - name: Check CLI help
