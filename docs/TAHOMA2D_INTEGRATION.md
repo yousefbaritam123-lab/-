@@ -17,7 +17,7 @@ This exports original SVG artwork and available articulated source segments into
 
     projects/episode-001/production/tahoma2d/characters/
 
-The package includes a full-character reference, canvas-aligned vector layers, joint/bone metadata where available, and an import guide. It does not fabricate a native Tahoma2D project or claim the Plastic rig is already complete.
+For the named Youssef and Adam sheets, the package preserves the original design sheet, exports a full reference, and splits the existing arm/leg strokes at their authored vertices into canvas-aligned SVG levels. It also exports the existing head, costume and face shapes as separate levels and records joint landmarks. This is source-preserving vector segmentation, not new drawing. The Plastic mesh/skeleton and native .tnz scene still need to be authored and tested in Tahoma2D.
 
 ## Native Tahoma2D batch rendering
 
@@ -37,4 +37,4 @@ The renderer uses the upstream tcomposer batch interface (source, -o, -range, -s
 
 ## Honest current boundary
 
-The repository can now prepare character vector assets, install and launch Tahoma2D in CI, detect the official batch renderer, and invoke tcomposer on an authored .tnz scene. It does not yet automatically construct Plastic meshes/skeletons or create a valid native .tnz scene from the character manifest. That must be completed in Tahoma2D and validated with a real rendered character test before the entire episode pipeline can switch over.
+The repository can now prepare canvas-aligned vector levels for Youssef and Adam, preserve their original sheets, record joint landmarks, install and launch Tahoma2D in CI, and detect the official batch renderer. It still does not automatically construct Plastic meshes/skeletons or create a native .tnz scene. A real character scene must be authored in Tahoma2D, batch-rendered, and visually reviewed before the full episode pipeline can switch over.
