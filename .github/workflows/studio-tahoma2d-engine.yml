@@ -135,11 +135,9 @@ jobs:
           xdotool windowfocus --sync "$MAIN_WINDOW"
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
           export WINDOW_X="$X" WINDOW_Y="$Y"
-          # The X11 window geometry includes the title bar. The menu bar is
-          # below it, so click inside the File label rather than the title bar.
-          FILE_MENU_X=$((X + 18))
-          FILE_MENU_Y=$((Y + 42))
-          xdotool mousemove --sync "$FILE_MENU_X" "$FILE_MENU_Y" click 1
+          # Qt exposes File through the standard Alt+F mnemonic. Use the
+          # focused application keyboard path to avoid window-frame coordinate offsets.
+          xdotool key --clearmodifiers alt+f
           sleep 1
           import -window root /tmp/tahoma2d-file-menu-open.png
           convert /tmp/tahoma2d-file-menu-open.png -crop "760x820+$X+$Y" +repage -resize 200% /tmp/tahoma2d-file-menu-crop.png
