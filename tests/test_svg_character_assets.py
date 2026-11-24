@@ -43,6 +43,34 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             self.assertEqual(paths[0].get("fill"), "#C62828")
             self.assertTrue(any(node.get("stroke") == "#171923" for node in extracted.iter(f"{{{SVG_NS}}}g")) )
 
+    def test_writes_joint_map_and_splits_existing_arm_subpaths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self._source(root)
+            tree = ET.parse(source)
+            first = tree.getroot().find(f".//{{{SVG_NS}}}g")
+            ET.SubElement(first, f"{{{SVG_NS}}}path", {
+                "d": "M 83 109 L 64 133 L 50 151 M 117 109 L 136 133 L 150 151",
+                "fill": "none", "stroke": "#171923", "stroke-width": "8",
+            })
+            ET.SubElement(first, f"{{{SVG_NS}}}path", {
+                "d": "M 83 109 L 64 133 L 50 151 M 117 109 L 136 133 L 150 151",
+                "fill": "none", "stroke": "#E7B98F", "stroke-width": "4",
+            })
+            tree.write(source, encoding="utf-8", xml_declaration=True)
+            out = root / "prepared"
+            prepare_svg_cast(source, out)
+            rig = json.loads((out / "extra_001.rig.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(rig["joints"]), 15)
+            self.assertEqual(rig["joints"]["left_elbow"], [64.0, 133.0])
+            layers = ET.parse(out / "extra_001.rig_layers.svg").getroot()
+            ids = {node.get("id") for node in layers.iter(f"{{{SVG_NS}}}g")}
+            self.assertIn("arm_outline_L", ids)
+            self.assertIn("arm_outline_R", ids)
+            self.assertIn("arm_skin_L", ids)
+            self.assertIn("arm_skin_R", ids)
+            self.assertFalse(rig["source_artwork_changed"])
+
     def test_rejects_wrong_cast_count(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
