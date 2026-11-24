@@ -137,8 +137,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                     if len(points) >= 3:
                         side = "L" if sum(p[0] for p in points) / len(points) < (100 + column * 200) else "R"
                         for segment_name, segment_points in (("upper", points[:2]), ("forearm", points[1:3])):
-                            local = [(x - column * 200, y) for x, y in segment_points]
-                            segment_path = "M " + " L ".join(f"{x:g} {y:g}" for x, y in local)
+                            segment_path = "M " + " L ".join(f"{x:g} {y:g}" for x, y in segment_points)
                             part = ET.Element(_tag("path"), dict(child.attrib))
                             part.set("d", segment_path)
                             articulated_parts.append((f"{segment_name}_{kind}_{side}", part))
@@ -182,6 +181,20 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                 joints["right_shoulder"], joints["right_elbow"], joints["right_wrist"] = [list(p) for p in rp]
             break
         for node in source_children:
+            if node.tag == _tag("circle") and node.get("r") and node.get("fill") and node.get("stroke-width") == "5":
+                joints["head_center"] = [
+                    float(node.get("cx", cx)) - column * 200,
+                    float(node.get("cy", cy)),
+                ]
+                break
+        for node in source_children:
+            if node.tag == _tag("rect"):
+                joints["neck"] = [
+                    float(node.get("x", cx)) - column * 200 + float(node.get("width", 0)) * 0.5,
+                    float(node.get("y", 0)) + float(node.get("height", 0)),
+                ]
+                break
+        for node in source_children:
             if node.tag != _tag("path") or node.get("fill") == "none" or node.get("stroke-width") != "5":
                 continue
             points = [(x - column * 200, y) for x, y in _absolute_polyline_points(node.get("d", ""))]
@@ -192,6 +205,13 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                 joints["right_hip"] = list(min(right, key=lambda p: p[1]))
                 joints["left_knee"] = list(min((p for p in left if p[1] > joints["left_hip"][1]), key=lambda p: abs(p[1] - 172), default=tuple(joints["left_knee"])))
                 joints["right_knee"] = list(min((p for p in right if p[1] > joints["right_hip"][1]), key=lambda p: abs(p[1] - 172), default=tuple(joints["right_knee"])))
+                left_bottom = [p for p in left if p[1] == max(q[1] for q in left)]
+                right_bottom = [p for p in right if p[1] == max(q[1] for q in right)]
+                if left_bottom:
+                    joints["left_ankle"] = [sum(p[0] for p in left_bottom) / len(left_bottom), sum(p[1] for p in left_bottom) / len(left_bottom)]
+                if right_bottom:
+                    joints["right_ankle"] = [sum(p[0] for p in right_bottom) / len(right_bottom), sum(p[1] for p in right_bottom) / len(right_bottom)]
+                joints["pelvis"] = [(joints["left_hip"][0] + joints["right_hip"][0]) * 0.5, (joints["left_hip"][1] + joints["right_hip"][1]) * 0.5]
             break
         rig = {
             "schema_version": 1,
