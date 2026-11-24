@@ -49,8 +49,13 @@ jobs:
           mkdir -p /tmp/opentoonz-sample
           tar -xzf /tmp/opentoonz-sample.tar.gz -C /tmp/opentoonz-sample --strip-components=1
           test -s /tmp/opentoonz-sample/dwanko_run.tnz
-          mkdir -p /tmp/tahoma2d-real-smoke
           TAHOMA_STUFF="/etc/skel/.local/share/Tahoma2D/tahomastuff"
+          PROJECT_ROOT="$TAHOMA_STUFF/projects/sandbox"
+          mkdir -p "$PROJECT_ROOT/scenes" "$PROJECT_ROOT/inputs" "$PROJECT_ROOT/drawings" "$PROJECT_ROOT/extras" "$PROJECT_ROOT/outputs" "$PROJECT_ROOT/palettes" "$PROJECT_ROOT/stopmotion" "$PROJECT_ROOT/scripts"
+          curl -fL --retry 3 https://raw.githubusercontent.com/ShuchirJ/The-Flower-Escapee/7a01b86657c0e4d252adbcd2f91a7c42efd3ace9/tahomaproject.xml -o "$PROJECT_ROOT/tahomaproject.xml"
+          cp /tmp/opentoonz-sample/dwanko_run.tnz "$PROJECT_ROOT/scenes/dwanko_run.tnz"
+          cp -a /tmp/opentoonz-sample/BG /tmp/opentoonz-sample/dwanko /tmp/opentoonz-sample/other_materials "$PROJECT_ROOT/scenes/"
+          mkdir -p /tmp/tahoma2d-real-smoke
           export TAHOMA2DROOT="$TAHOMA_STUFF"
           export TAHOMA2DPROFILES="$TAHOMA_STUFF/profiles"
           export TAHOMA2DCONFIG="$TAHOMA_STUFF/config"
@@ -69,7 +74,7 @@ jobs:
           TAHOMA2DPROJECTS="$TAHOMA_STUFF/projects"
           TAHOMA2DSTUDIOPALETTE="$TAHOMA_STUFF/studiopalette"
           EOF
-          xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 tcomposer /tmp/opentoonz-sample/dwanko_run.tnz -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
+          xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 tcomposer "$PROJECT_ROOT/scenes/dwanko_run.tnz" -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
           python - <<'PY'
           from pathlib import Path
           from PIL import Image, ImageStat
