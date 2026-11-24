@@ -155,7 +155,10 @@ def prepare_tahoma2d_episode(project_dir: Path, character_ids: list[str] | None 
             if str(actor.get("id", "")) in {"youssef", "adam"}
         })
     else:
-        named_ids = []
+        requested = {str(item) for item in character_ids}
+        supported = {"youssef", "adam"}
+        named_ids = sorted(requested & supported)
+        character_ids = sorted(requested - supported)
     prepared = project_dir / "assets" / "characters" / "prepared_cast_60"
     output_root = project_dir / "production" / "tahoma2d" / "characters"
     outputs: list[Path] = []
