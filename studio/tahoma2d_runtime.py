@@ -22,7 +22,7 @@ def render_tahoma2d_scene(scene, output, *, executable=None, start_frame=1, end_
     output.parent.mkdir(parents=True, exist_ok=True)
     command = [find_tcomposer(executable), str(scene), "-o", str(output)]
     if end_frame is not None:
-        command.extend(["-range", f"{start_frame}-{end_frame}"])
+        command.extend(["-range", str(start_frame), str(end_frame)])
     elif start_frame != 1:
         raise ValueError("end_frame is required when start_frame is not 1")
     if step != 1:
