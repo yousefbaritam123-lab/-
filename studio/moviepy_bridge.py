@@ -59,10 +59,10 @@ def compose_moviepy_timeline(project_dir: Path, timeline_path: Path) -> Path:
     """Compose trimmed rendered shots with optional crossfades and replacement mix."""
     spec = load_timeline(project_dir, timeline_path)
     try:
-        from moviepy import AudioFileClip, VideoFileClip, concatenate_videoclips, vfx
+        from moviepy import AudioFileClip, VideoFileClip, CompositeVideoClip, vfx
     except ImportError:
         try:
-            from moviepy.editor import AudioFileClip, VideoFileClip, concatenate_videoclips, vfx
+            from moviepy.editor import AudioFileClip, VideoFileClip, CompositeVideoClip, vfx
         except ImportError as exc:
             raise RuntimeError(
                 "MoviePy is optional. Install it with: pip install -r requirements-editorial.txt"
@@ -73,22 +73,36 @@ def compose_moviepy_timeline(project_dir: Path, timeline_path: Path) -> Path:
     audio_clip = None
     try:
         clips = []
-        overlaps = []
+        cursor = 0.0
+        canvas_size = None
         for index, item in enumerate(spec["clips"]):
-            clip = VideoFileClip(str(item["source"]))
-            opened.append(clip)
+            source_clip = VideoFileClip(str(item["source"]))
+            opened.append(source_clip)
             start = item["start_seconds"]
-            end = item["end_seconds"] if item["end_seconds"] is not None else clip.duration
-            if end > clip.duration:
+            end = item["end_seconds"] if item["end_seconds"] is not None else source_clip.duration
+            if end > source_clip.duration:
                 raise ValueError(f"Timeline clip {index} ends after its source duration.")
-            clip = clip.subclipped(start, end)
-            transition = item["transition_in_seconds"]
-            if index and transition:
-                clip = clip.with_effects([vfx.CrossFadeIn(transition)])
+            clip = source_clip.subclipped(start, end)
+            if canvas_size is None:
+                canvas_size = clip.size
+            elif clip.size != canvas_size:
+                raise ValueError(
+                    f"Timeline clip {index} resolution {clip.size} differs from {canvas_size}."
+                )
+            transition = item["transition_in_seconds"] if index else 0.0
+            if transition > clip.duration:
+                raise ValueError(f"Timeline clip {index} transition exceeds its trimmed duration.")
+            if index:
+                previous_duration = clips[-1].duration
+                if transition > previous_duration:
+                    raise ValueError(f"Timeline clip {index} transition exceeds the previous clip.")
+                cursor -= transition
+                if transition:
+                    clip = clip.with_effects([vfx.CrossFadeIn(transition)])
+            clip = clip.with_start(cursor)
             clips.append(clip)
-            overlaps.append(-transition if index else 0.0)
-        padding = min(overlaps) if overlaps else 0.0
-        final = concatenate_videoclips(clips, method="compose", padding=padding)
+            cursor += clip.duration
+        final = CompositeVideoClip(clips, size=canvas_size).with_duration(cursor)
         if spec["audio"]:
             audio_clip = AudioFileClip(str(spec["audio"]))
             final = final.with_audio(audio_clip)
