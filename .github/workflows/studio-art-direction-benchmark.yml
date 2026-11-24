@@ -116,9 +116,39 @@ jobs:
         run: |
           python -m studio.cli validate projects/art-direction-benchmark
           python -m studio.cli render projects/art-direction-benchmark --resume
-      - name: Run engineering quality control and encode
+      - name: Run benchmark frame-integrity checks and encode
         run: |
-          python -m studio.cli qc projects/art-direction-benchmark
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image
+          root = Path("projects/art-direction-benchmark")
+          frames = sorted((root / "renders/frames").glob("frame_*.png"))
+          expected = 12 * 30
+          errors = []
+          if len(frames) != expected:
+              errors.append(f"expected {expected} frames, found {len(frames)}")
+          for path in frames:
+              try:
+                  with Image.open(path) as image:
+                      image.load()
+                      if image.size != (540, 960):
+                          errors.append(f"{path.name}: wrong dimensions {image.size}")
+              except Exception as exc:
+                  errors.append(f"{path.name}: decode failed: {exc}")
+          report = {
+              "expected_frames": expected,
+              "decoded_frames": len(frames) - sum("decode failed" in e for e in errors),
+              "errors": errors,
+              "status": "passed" if not errors else "failed"
+          }
+          out = root / "production/benchmark_integrity.json"
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if errors:
+              raise SystemExit(1)
+          PY
           python -m studio.cli encode projects/art-direction-benchmark
       - name: Create visual contact sheet for human review
         run: |
@@ -146,7 +176,7 @@ jobs:
           name: studio-art-direction-benchmark
           path: |
             projects/art-direction-benchmark/renders/episode.mp4
-            projects/art-direction-benchmark/production/quality_report.json
-                        projects/art-direction-benchmark/production/contact-sheet.jpg
+            projects/art-direction-benchmark/production/benchmark_integrity.json
+            projects/art-direction-benchmark/production/contact-sheet.jpg
           if-no-files-found: error
           retention-days: 14
