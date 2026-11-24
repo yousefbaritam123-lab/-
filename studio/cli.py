@@ -164,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     subtitles_cmd.add_argument("--include-speaker", action="store_true")
     edit_cmd = sub.add_parser("edit-plan", help="export shot timing and optional OpenTimelineIO timeline")
     edit_cmd.add_argument("project", type=Path)
+    script_cmd = sub.add_parser("script-qa", help="check dialogue speakers, timing, overlaps and speaking pace")
+    script_cmd.add_argument("project", type=Path)
     blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
@@ -295,6 +297,16 @@ def main(argv: list[str] | None = None) -> int:
         output = export_edit_plan(args.project)
         print(f"Editorial plan exported: {output}")
         return 0
+    if args.command == "script-qa":
+        from .script_qc import audit_dialogue
+        report = audit_dialogue(args.project)
+        print("SCRIPT QA " + report["status"])
+        for error in report["errors"]:
+            print("ERROR: " + error)
+        for warning in report["warnings"]:
+            print("WARNING: " + warning)
+        print("Report: " + str(args.project / "production" / "script_quality_report.json"))
+        return 1 if report["errors"] else 0
     if args.command == "blender-render":
         from .blender_bridge import render_with_blender
         output = render_with_blender(args.project, blender=args.blender)
