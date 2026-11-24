@@ -71,13 +71,13 @@ def init_project(path: Path) -> None:
         shutil.copytree(bundled_assets, path / "assets", dirs_exist_ok=True)
     episode_file = path / "episode.json"
     if not episode_file.exists():
-        episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        episode_file.write_text(json.dumps(TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     voice_template = path / "production" / "voice_cast.template.json"
     if not voice_template.exists():
-        voice_template.write_text(json.dumps(VOICE_CAST_TEMPLATE, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        voice_template.write_text(json.dumps(VOICE_CAST_TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     mix_template = path / "production" / "audio_mix.template.json"
     if not mix_template.exists():
-        mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        mix_template.write_text(json.dumps(AUDIO_MIX_TEMPLATE, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     continuity_file = path / "continuity.json"
     if not continuity_file.exists():
         continuity_file.write_text(json.dumps({
@@ -88,7 +88,7 @@ def init_project(path: Path) -> None:
                 "adam": {"wardrobe": "default", "personality": ["loyal", "observant"], "known_facts": []}
             },
             "world_state": [], "unresolved_threads": []
-        }, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Project initialized: {path.resolve()}")
 
 
@@ -327,7 +327,7 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error("--episode and --shot-id must be supplied together")
             episode = json.loads(args.episode.read_text(encoding="utf-8"))
             attach_visemes(episode, shot_id=args.shot_id, speaker=args.speaker, cues=cues)
-            args.episode.write_text(json.dumps(episode, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+            args.episode.write_text(json.dumps(episode, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"Generated {len(cues)} mouth cues: {args.output}")
         return 0
     if args.command == "production-run":
@@ -344,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
                     "reviewer": args.reviewer, "notes": args.notes}
         target = args.project / "production" / "human_visual_approval.json"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        target.write_text(json.dumps(approval, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("Visual approval recorded: " + str(target))
         return 0
     if args.command == "voice-generate":
