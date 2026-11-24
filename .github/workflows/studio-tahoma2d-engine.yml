@@ -41,6 +41,33 @@ jobs:
           cat /tmp/tcomposer-usage.txt
           grep -E "Source file|srcName|-multimedia|-range" /tmp/tcomposer-usage.txt
           echo "No-argument exit code: $code (usage output expected)"
+      - name: Prepare the actual Youssef and Adam source artwork for Tahoma2D
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt
+          python -m studio.cli init /tmp/youssef-tahoma2d-pilot
+          python -m studio.cli tahoma2d-prepare /tmp/youssef-tahoma2d-pilot
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("/tmp/youssef-tahoma2d-pilot/production/tahoma2d/characters")
+          expected = {"youssef", "adam"}
+          actual = {p.name for p in root.iterdir() if p.is_dir()}
+          if not expected.issubset(actual):
+              raise SystemExit(f"Missing prepared cast assets: {expected - actual}")
+          for character in sorted(expected):
+              folder = root / character
+              manifest = json.loads((folder / "tahoma2d_character_manifest.json").read_text(encoding="utf-8"))
+              source = folder / manifest["reference_art"]
+              if not source.is_file() or source.stat().st_size < 100:
+                  raise SystemExit(f"Missing or invalid original artwork reference for {character}")
+              if manifest.get("rigging_status") not in {
+                  "reference_only_manual_layering_and_plastic_skeleton_required",
+                  "vector_layers_exported_plastic_skeleton_not_yet_authored",
+              }:
+                  raise SystemExit(f"Unexpected rigging status for {character}")
+          print("YOUSEFF_ADAM_SOURCE_ART_PREPARED")
+          PY
       - name: Render a real upstream animation scene with Tahoma2D
         run: |
           set -euo pipefail
@@ -123,6 +150,9 @@ jobs:
         run: |
           mkdir -p engine-report
           { echo "Tahoma2D release: v1.6.3"; dpkg -L tahoma2d | grep -E "/(tahoma2d|tcomposer)$" || true; } > engine-report/install-report.txt
+          if [ -d /tmp/youssef-tahoma2d-pilot/production/tahoma2d/characters ]; then
+            cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/characters engine-report/
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
