@@ -274,6 +274,19 @@ def main():
         duration = float(shot.get("duration_seconds", 1))
         start = current_frame
         end = min(total_frames, start + max(1, round(duration * fps)) - 1)
+        # Per-shot camera blocking: zoom and pan are keyframed in the same
+        # episode-local frame space as character actions.
+        camera_plan = shot.get("camera", {})
+        move = camera_plan.get("move", {})
+        camera_from = move.get("from", {}) if move else camera_plan
+        camera_to = move.get("to", {}) if move else camera_plan
+        for camera_frame, camera_state in ((start, camera_from), (end, camera_to)):
+            zoom = max(0.25, min(3.0, float(camera_state.get("zoom", 1.0))))
+            camera.data.ortho_scale = (height / 100.0) / zoom
+            camera.location.x = -float(camera_state.get("x", 0.0)) / 100.0
+            camera.location.y = float(camera_state.get("y", 0.0)) / 100.0
+            camera.data.keyframe_insert(data_path="ortho_scale", frame=camera_frame)
+            camera.keyframe_insert(data_path="location", frame=camera_frame)
         active = set(shot.get("actors", []))
         positions = shot.get("positions", {})
         tracks = shot.get("motion_tracks", {})
