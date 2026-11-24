@@ -158,6 +158,9 @@ def main(argv: list[str] | None = None) -> int:
     assemble_cmd = sub.add_parser("assemble", help="assemble storyboard and assets into an isolated renderable animatic project")
     assemble_cmd.add_argument("project", type=Path)
     assemble_cmd.add_argument("--storyboard", type=Path)
+    svg_cast_cmd = sub.add_parser("prepare-svg-cast", help="losslessly extract the existing 60 SVG character drawings into source layers")
+    svg_cast_cmd.add_argument("source", type=Path)
+    svg_cast_cmd.add_argument("output", type=Path)
     image_cmd = sub.add_parser("prepare-character", help="remove image background and prepare a character manifest")
     image_cmd.add_argument("source", type=Path)
     image_cmd.add_argument("output", type=Path)
@@ -287,6 +290,12 @@ def main(argv: list[str] | None = None) -> int:
         output = assemble_storyboard(args.project, args.storyboard)
         print(f"Isolated animatic project created: {output}")
         print("Next: run validate, render, then encode using this new project directory.")
+        return 0
+    if args.command == "prepare-svg-cast":
+        from .svg_character_assets import prepare_svg_cast
+        output = prepare_svg_cast(args.source, args.output)
+        print(f"Extracted original SVG cast layers: {output}")
+        print("Note: source art is preserved; anatomical joint mapping is a separate, not-yet-complete stage.")
         return 0
     if args.command == "prepare-character":
         from .image_character import prepare_character_image
