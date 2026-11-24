@@ -128,8 +128,10 @@ jobs:
           fi
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          xdotool key --clearmodifiers alt+f
+          xdotool mousemove --window "$MAIN_WINDOW" 28 45 click 1
           sleep 1
+          xwd -root -silent -out /tmp/tahoma2d-file-menu.xwd
+          convert /tmp/tahoma2d-file-menu.xwd /tmp/tahoma2d-file-menu.png
           for i in $(seq 1 17); do xdotool key --clearmodifiers Down; done
           xdotool key --clearmodifiers Right
           sleep 1
@@ -202,6 +204,7 @@ jobs:
             cp -a /tmp/youssef-tahoma2d-pilot/production/tahoma2d/render-proof engine-report/
           fi
           if [ -f /tmp/tahoma2d-screen.png ]; then cp /tmp/tahoma2d-screen.png engine-report/; fi
+          if [ -f /tmp/tahoma2d-file-menu.png ]; then cp /tmp/tahoma2d-file-menu.png engine-report/; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
