@@ -50,6 +50,14 @@ jobs:
           tar -xzf /tmp/opentoonz-sample.tar.gz -C /tmp/opentoonz-sample --strip-components=1
           test -s /tmp/opentoonz-sample/dwanko_run.tnz
           mkdir -p /tmp/tahoma2d-real-smoke
+          TAHOMA_STUFF="/etc/skel/.local/share/Tahoma2D/tahomastuff"
+          export TAHOMA2DROOT="$TAHOMA_STUFF"
+          export TAHOMA2DPROFILES="$TAHOMA_STUFF/profiles"
+          export TAHOMA2DCONFIG="$TAHOMA_STUFF/config"
+          export TAHOMA2DFXPRESETS="$TAHOMA_STUFF/fxs"
+          export TAHOMA2DLIBRARY="$TAHOMA_STUFF/library"
+          export TAHOMA2DPROJECTS="$TAHOMA_STUFF/projects"
+          export TAHOMA2DSTUDIOPALETTE="$TAHOMA_STUFF/studiopalette"
           xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 tcomposer /tmp/opentoonz-sample/dwanko_run.tnz -o /tmp/tahoma2d-real-smoke/frame.png -range 1 1 -multimedia 1 -nthreads 2
           python - <<'PY'
           from pathlib import Path
