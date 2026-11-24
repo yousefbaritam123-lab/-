@@ -39,6 +39,47 @@ def _split_subpaths(path_data: str) -> list[str]:
     return [part.strip() for part in re.split(r"(?=M\s)", path_data.strip()) if part.strip()]
 
 
+
+def prepare_named_character_svg(
+    source_svg: Path,
+    output_svg: Path,
+    character_id: str,
+    *,
+    view_box: tuple[float, float, float, float] = (100.0, 20.0, 360.0, 570.0),
+) -> Path:
+    """Extract the original character drawing from a labeled model sheet.
+
+    Only the transformed character group is copied; the sheet background,
+    headings and design notes are excluded. Source artwork remains untouched.
+    """
+    character_id = _safe_id(character_id)
+    source_svg = Path(source_svg)
+    output_svg = Path(output_svg)
+    if not source_svg.is_file():
+        raise FileNotFoundError(source_svg)
+    if output_svg.exists():
+        raise FileExistsError(output_svg)
+    source_root = ET.parse(source_svg).getroot()
+    candidates = [
+        node for node in source_root.iter(_tag("g"))
+        if node.get("transform", "").startswith("translate(")
+        and any(child.tag in {_tag("path"), _tag("circle"), _tag("ellipse")} for child in node.iter())
+    ]
+    if len(candidates) != 1:
+        raise ValueError(f"Expected one original character group in {source_svg.name}, found {len(candidates)}")
+    x, y, width, height = view_box
+    wrapper = ET.Element(_tag("svg"), {
+        "width": f"{width:g}", "height": f"{height:g}",
+        "viewBox": f"0 0 {width:g} {height:g}", "version": "1.1",
+        "data-character-id": character_id,
+    })
+    crop = ET.SubElement(wrapper, _tag("g"), {"transform": f"translate({-x:g} {-y:g})"})
+    crop.append(ET.fromstring(ET.tostring(candidates[0], encoding="unicode")))
+    output_svg.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(wrapper).write(output_svg, encoding="utf-8", xml_declaration=True)
+    return output_svg
+
+
 def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int = 60) -> Path:
     """Extract each cast group and preserve each direct SVG element verbatim.
 
