@@ -25,6 +25,8 @@ class BlenderBridgeTests(unittest.TestCase):
             self.assertEqual(manifest["shots"][0]["id"], "shot-1")
             self.assertEqual(Path(manifest["output_root"]), root / "renders" / "blender")
             self.assertEqual(Path(manifest["catalog_path"]), root / "assets" / "characters" / "cast_60" / "catalog.json")
+            self.assertEqual(Path(manifest["prepared_cast_path"]), root / "assets" / "characters" / "prepared_cast_60")
+            self.assertEqual(Path(manifest["cast_source_svg"]), root / "assets" / "characters" / "cast_60" / "contact_sheet.svg")
 
     def test_missing_episode_is_reported(self):
         with tempfile.TemporaryDirectory() as temporary:
