@@ -1,0 +1,8 @@
+# Optional image analysis, audio analysis and editorial integrations.
+# Install only when a department actually needs these libraries.
+opencv-python-headless>=4.10,<5
+scikit-image>=0.24,<1
+scipy>=1.13,<2
+librosa>=0.10.2,<1
+soundfile>=0.12,<1
+opentimelineio>=0.17,<1
