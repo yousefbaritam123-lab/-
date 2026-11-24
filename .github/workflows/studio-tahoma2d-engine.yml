@@ -63,7 +63,7 @@ jobs:
               if not source.is_file() or source.stat().st_size < 100:
                   raise SystemExit(f"Missing or invalid original artwork reference for {character}")
               if manifest.get("rigging_status") not in {
-                  "reference_only_manual_layering_and_plastic_skeleton_required",
+                  "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored",
                   "vector_layers_exported_plastic_skeleton_not_yet_authored",
               }:
                   raise SystemExit(f"Unexpected rigging status for {character}")
