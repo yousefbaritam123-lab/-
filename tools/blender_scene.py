@@ -195,13 +195,18 @@ def set_viseme(actor, shape, frame):
     mouth_frown = make_line(actor_id + "_mouth_frown",
                             [(-0.11, 1.17), (-0.05, 1.22), (0.05, 1.22), (0.11, 1.17)],
                             0.018, ink, root, 0.38)
-    mouth_wide = make_line(actor_id + "_mouth_wide",
-                           [(-0.12, 1.21), (0, 1.20), (0.12, 1.21)],
-                           0.035, ink, root, 0.38)
-    mouth_open = make_disc(actor_id + "_mouth_open", 0, 1.20, 0.065, 0.095, ink, root, 0.39)
-    mouths = {"REST": mouth_rest, "SMILE": mouth_smile, "FROWN": mouth_frown,
-              "E": mouth_wide, "A": mouth_open, "O": mouth_open, "U": mouth_open,
-              "I": mouth_wide, "CLOSED": mouth_rest}
+    mouth_e = make_line(actor_id + "_mouth_e",
+                         [(-0.12, 1.21), (0, 1.20), (0.12, 1.21)],
+                         0.032, ink, root, 0.38)
+    mouth_i = make_line(actor_id + "_mouth_i",
+                        [(-0.075, 1.20), (0.075, 1.20)],
+                        0.028, ink, root, 0.38)
+    mouth_a = make_disc(actor_id + "_mouth_a", 0, 1.20, 0.065, 0.095, ink, root, 0.39)
+    mouth_o = make_disc(actor_id + "_mouth_o", 0, 1.20, 0.055, 0.075, ink, root, 0.39)
+    mouth_u = make_disc(actor_id + "_mouth_u", 0, 1.20, 0.075, 0.045, ink, root, 0.39)
+    mouths = {"REST": mouth_rest, "CLOSED": mouth_rest, "SMILE": mouth_smile,
+              "FROWN": mouth_frown, "E": mouth_e, "I": mouth_i,
+              "A": mouth_a, "O": mouth_o, "U": mouth_u}
     for mouth in set(mouths.values()):
         mouth.hide_render = True
         mouth.keyframe_insert(data_path="hide_render", frame=1)
