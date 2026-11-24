@@ -21,7 +21,7 @@ class Tahoma2DBridgeTests(unittest.TestCase):
             ET.SubElement(group, ns + "path", {"d": "M 80 100 L 100 80 L 120 100", "fill": "#C62828", "stroke-width": "5"})
             ET.SubElement(group, ns + "rect", {"x": "95", "y": "100", "width": "10", "height": "8"})
             ET.SubElement(group, ns + "circle", {"cx": "100", "cy": "76", "r": "20", "fill": "#F1C27D", "stroke-width": "5"})
-            ET.ElementTree(svg).write(source, encoding="utf-8", xml_declaration=True)
+            for index in range(2, 61):\n                extra = ET.SubElement(svg, ns + "g", {"id": f"extra-{index:03d}", "transform": f"translate({((index - 1) % 10) * 200} {((index - 1) // 10) * 200})"})\n                ET.SubElement(extra, ns + "path", {"d": f"M {index} 1 L {index} 2", "fill": "#C62828"})\n            ET.ElementTree(svg).write(source, encoding="utf-8", xml_declaration=True)
             original = source.read_bytes()
             prepared = root / "prepared"
             prepare_svg_cast(source, prepared)
