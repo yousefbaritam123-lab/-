@@ -6,6 +6,7 @@ on:
       - studio-pro-foundation
     paths:
       - "studio/blender_bridge.py"
+      - "studio/svg_character_assets.py"
       - "studio/frame_interpolation.py"
       - "tools/blender_scene.py"
       - "studio/cli.py"
