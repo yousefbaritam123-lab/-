@@ -59,6 +59,32 @@ class IterativeProductionTests(unittest.TestCase):
             self.assertEqual(report["final_frame_audit"]["verified_frames"], 60)
             self.assertTrue(report["quality_policy"]["human_visual_signoff_required"])
 
+    def test_production_recovers_after_transient_render_exception(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self.make_project(tmp)
+            output = project / "renders" / "episode.mp4"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"video")
+            calls = {"count": 0}
+
+            def flaky_render(project_dir, start, count, resume=True):
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    folder = project_dir / "renders" / "frames"
+                    folder.mkdir(parents=True, exist_ok=True)
+                    (folder / "frame_000000.png").write_bytes(b"partial")
+                    raise RuntimeError("simulated temporary render crash")
+                return self.fake_render(project_dir, start, count, resume)
+
+            with patch("studio.production.render_episode_frames", side_effect=flaky_render), \\
+                 patch("studio.production.certify_delivery", return_value=output):
+                report = run_production(project, max_repair_rounds=3)
+
+            self.assertEqual(report["status"], "delivered")
+            self.assertEqual(calls["count"], 2)
+            self.assertIn("simulated temporary render crash", report["rounds"][0]["render_error"])
+            self.assertEqual(report["final_frame_audit"]["verified_frames"], 60)
+
     def test_missing_audio_or_visual_signoff_blocks_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = self.make_project(tmp)
