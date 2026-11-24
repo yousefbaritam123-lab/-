@@ -9,7 +9,7 @@
 ## Current engine boundary
 - The Python/Skia path can render the current procedural character rigs and produce resumable frames.
 - Tahoma2D v1.6.3 is downloaded and installed in CI, and its `tcomposer` batch renderer is available.
-- The bridge prepares source artwork packages for Tahoma2D. It does not synthesize a native `.tnz` scene or a Plastic mesh/skeleton.
+- The bridge now splits Youssef and Adam's existing arm/leg SVG strokes at their authored vertices into aligned vector levels, preserving the source sheets and recording joint landmarks. It does not synthesize a native `.tnz` scene or a Plastic mesh/skeleton.
 - Youssef and Adam source sheets are currently reference artwork; they are not complete cut-out animation rigs. Preserve them unchanged while the character department builds independently moving layers.
 - Blender remains a legacy fallback. Do not switch the whole series to Tahoma2D until a real Tahoma2D scene renders and the character pilot passes visual review.
 
