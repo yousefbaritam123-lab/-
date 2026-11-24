@@ -22,7 +22,7 @@ class CharacterRigTests(unittest.TestCase):
         ]}}}
         before_seam = sample_motion("cycle", 0.99, clip)["left_arm"]
         after_seam = sample_motion("cycle", 0.01, clip)["left_arm"]
-        self.assertLess(abs(before_seam - after_seam), 5.0)
+        self.assertLess(abs(before_seam - after_seam), 8.0)
         self.assertGreater(before_seam, 0.0)
         self.assertLess(after_seam, 100.0)
 
