@@ -3,7 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from PIL import Image\n\nfrom studio.blender_bridge import _rasterize_character_svg, build_blender_manifest
+from PIL import Image
+
+from studio.blender_bridge import _rasterize_character_svg, build_blender_manifest
 
 
 class BlenderBridgeTests(unittest.TestCase):
