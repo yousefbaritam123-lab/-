@@ -4,7 +4,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from studio.svg_character_assets import SVG_NS, prepare_named_character_svg, prepare_svg_cast
+from studio.svg_character_assets import SVG_NS, prepare_named_character_layers, prepare_named_character_svg, prepare_svg_cast
 
 
 class SvgCharacterAssetsTests(unittest.TestCase):
@@ -124,6 +124,36 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             self.assertEqual(len(list(extracted.iter(ns + "circle"))), 1)
             self.assertFalse(any(node.tag == ns + "rect" for node in extracted.iter()))
             self.assertFalse(any(node.tag == ns + "text" for node in extracted.iter()))
+
+    def test_named_youssef_and_adam_export_aligned_articulated_vector_layers(self):
+        repository = Path(__file__).resolve().parents[1]
+        for character_id in ("youssef", "adam"):
+            with self.subTest(character=character_id), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                source = repository / "assets" / "characters" / character_id / "design_sheet.svg"
+                original = source.read_bytes()
+                output = root / character_id
+                manifest_path = prepare_named_character_layers(source, output, character_id)
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+                self.assertEqual(source.read_bytes(), original)
+                self.assertTrue((output / "source_design_sheet.svg").is_file())
+                self.assertTrue((output / "full_character_reference.svg").is_file())
+                self.assertTrue((output / "rig_layers.svg").is_file())
+                self.assertGreaterEqual(manifest["layer_count"], 12)
+                self.assertEqual(manifest["rigging_status"],
+                                 "vector_parts_segmented_at_existing_path_vertices_plastic_mesh_and_skeleton_not_yet_authored")
+                self.assertIn("upper_arm_L", {layer["id"] for layer in manifest["layers"]})
+                self.assertIn("forearm_R", {layer["id"] for layer in manifest["layers"]})
+                self.assertIn("thigh_L", {layer["id"] for layer in manifest["layers"]})
+                self.assertIn("shin_R", {layer["id"] for layer in manifest["layers"]})
+                self.assertIn("torso_centerline", {layer["id"] for layer in manifest["layers"]})
+                self.assertIn("head", {layer["id"] for layer in manifest["layers"]})
+                for layer in manifest["layers"]:
+                    layer_root = ET.parse(output / layer["file"]).getroot()
+                    self.assertEqual(layer_root.get("viewBox"), "0 0 260 570")
+                self.assertIn("left_elbow", manifest["joints"])
+                self.assertIn("right_knee", manifest["joints"])
 
     def test_rejects_wrong_cast_count(self):
         with tempfile.TemporaryDirectory() as tmp:
