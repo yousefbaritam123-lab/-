@@ -101,7 +101,7 @@ def doctor() -> int:
         "pnpm": shutil.which("pnpm") is not None,
         "Rhubarb (optional lip-sync)": shutil.which("rhubarb") is not None,
         "Piper (optional local TTS)": shutil.which("piper") is not None,
-        "Blender (optional 2D backend)": shutil.which("blender") is not None,
+        "Tahoma2D (optional vector animation editor)": _tahoma2d_available(),\n        "Blender (legacy optional backend)": shutil.which("blender") is not None,
         "OpenTimelineIO (optional editorial)": _module_available("opentimelineio"),
         "OpenCV (optional vision)": _module_available("cv2"),
     }
@@ -208,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     interpolate_cmd.add_argument("--fps", type=int, required=True, help="target FPS; e.g. 60 from a 30 FPS source")
     interpolate_cmd.add_argument("--source", type=Path, help="source MP4; default renders/episode.mp4")
     interpolate_cmd.add_argument("--output", type=Path, help="output MP4; default renders/<source>-<fps>fps.mp4")
-    blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
+    tahoma_cmd = sub.add_parser("tahoma2d-prepare", help="export episode character vector layers for Tahoma2D Plastic rigging")\n    tahoma_cmd.add_argument("project", type=Path)\n    tahoma_cmd.add_argument("--character", action="append", dest="characters", help="cast ID such as extra_001; repeat to export more than one")\n    blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with the legacy optional Blender backend")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
     moviepy_cmd = sub.add_parser("moviepy-compose", help="compose rendered shots with optional MoviePy transitions and audio")
