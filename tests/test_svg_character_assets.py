@@ -87,6 +87,9 @@ class SvgCharacterAssetsTests(unittest.TestCase):
                 character_id = f"extra_{index:03d}"
                 rig = json.loads((output / f"{character_id}.rig.json").read_text(encoding="utf-8"))
                 self.assertEqual(len(rig["joints"]), 15)
+                self.assertGreater(rig["joints"]["head_center"][0], 0)
+                self.assertGreater(rig["joints"]["left_elbow"][1], rig["joints"]["left_shoulder"][1])
+                self.assertGreater(rig["joints"]["left_ankle"][1], rig["joints"]["left_knee"][1])
                 self.assertTrue((output / f"{character_id}.rig_layers.svg").is_file())
                 self.assertTrue((output / f"{character_id}.svg").is_file())
 
