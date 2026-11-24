@@ -65,6 +65,12 @@ jobs:
               "rig": "assets/characters/youssef/character.toon.json",
               "x": 180, "y": 500, "scale": 1.0
           })
+          continuity_path = root / "continuity.json"
+          continuity = json.loads(continuity_path.read_text(encoding="utf-8"))
+          continuity["character_state"]["extra_test"] = {
+              "wardrobe": "default", "personality": ["curious"], "known_facts": []
+          }
+          continuity_path.write_text(json.dumps(continuity, ensure_ascii=False, indent=2), encoding="utf-8")
           episode["locations"] = [
               {"id": "street_01", "name": "Algerian street", "sky_bottom": "#D9E3EA", "ground": "#647D62"},
               {"id": "classroom_01", "name": "Classroom", "environment": "classroom"},
