@@ -135,11 +135,11 @@ jobs:
           xdotool windowfocus --sync "$MAIN_WINDOW"
           eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
           export WINDOW_X="$X" WINDOW_Y="$Y"
-          # F10 focuses Qt's menu bar; Down opens the first menu (File).
-          # Send keys directly to the app window so no window-manager focus is assumed.
-          xdotool key --window "$MAIN_WINDOW" F10
-          sleep 0.3
-          xdotool key --window "$MAIN_WINDOW" Down
+          # The X11 window geometry includes the title bar. The menu bar is
+          # below it, so click inside the File label rather than the title bar.
+          FILE_MENU_X=$((X + 18))
+          FILE_MENU_Y=$((Y + 42))
+          xdotool mousemove --sync "$FILE_MENU_X" "$FILE_MENU_Y" click 1
           sleep 1
           import -window root /tmp/tahoma2d-file-menu-open.png
           convert /tmp/tahoma2d-file-menu-open.png -crop "760x820+$X+$Y" +repage -resize 200% /tmp/tahoma2d-file-menu-crop.png
