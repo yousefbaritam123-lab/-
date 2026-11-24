@@ -36,7 +36,7 @@ class CinematicTests(unittest.TestCase):
             self.assertEqual(manifest["format"]["width"], 1080)
             self.assertEqual(manifest["format"]["height"], 1920)
             self.assertEqual(manifest["format"]["duration_seconds"], 100)
-            self.assertEqual(manifest["backend"], "blender_optional")
+            self.assertEqual(manifest["backend"], "blender_procedural_2d")
 
 
 if __name__ == "__main__":
