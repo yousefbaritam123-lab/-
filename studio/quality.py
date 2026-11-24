@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import wave
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -35,6 +36,37 @@ def _read_approval(project_dir: Path, episode_id: str) -> tuple[bool, str]:
         and bool(approval["notes"].strip())
     )
     return (True, "") if valid else (False, "Human visual approval does not match this episode or lacks reviewer notes")
+
+
+def inspect_audio_mix(path: Path, expected_duration: float) -> tuple[bool, str]:
+    """Validate the final PCM WAV structurally and against the episode duration."""
+    if not path.is_file():
+        return False, "Final audio mix is missing"
+    try:
+        with wave.open(str(path), "rb") as audio:
+            channels = audio.getnchannels()
+            sample_rate = audio.getframerate()
+            sample_width = audio.getsampwidth()
+            frames = audio.getnframes()
+            duration = frames / float(sample_rate) if sample_rate else 0.0
+            payload = audio.readframes(frames)
+        if channels != 2:
+            return False, f"Final audio must be stereo; found {channels} channel(s)"
+        if sample_rate != 48000:
+            return False, f"Final audio must be 48000 Hz; found {sample_rate} Hz"
+        if sample_width != 3:
+            return False, f"Final audio must be 24-bit PCM; found {sample_width * 8}-bit"
+        if frames <= 0 or len(payload) != frames * channels * sample_width:
+            return False, "Final audio WAV is empty or truncated"
+        tolerance = max(0.15, 2.0 / 30.0)
+        if abs(duration - float(expected_duration)) > tolerance:
+            return False, (
+                f"Final audio duration mismatch: {duration:.3f}s; "
+                f"expected {float(expected_duration):.3f}s"
+            )
+        return True, ""
+    except (OSError, EOFError, wave.Error) as exc:
+        return False, f"Final audio WAV cannot be decoded: {exc}"
 
 
 def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
@@ -124,12 +156,19 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
     dialogue = [line for shot in episode.get("shots", []) for line in shot.get("dialogue", [])]
     dialogue_dir = project_dir / "audio" / "dialogue"
     audio_files = [p for p in dialogue_dir.glob("*") if p.is_file()] if dialogue_dir.is_dir() else []
-    has_mix = (project_dir / "audio" / "final_mix.wav").is_file()
-    if not has_mix:
-        if dialogue:
-            errors.append("Script contains dialogue but audio/final_mix.wav is missing")
-        else:
-            warnings.append("No final audio mix supplied; delivery will be blocked until one is added")
+    mix_path = project_dir / "audio" / "final_mix.wav"
+    has_mix = mix_path.is_file()
+    audio_ok = False
+    if has_mix:
+        audio_ok, audio_error = inspect_audio_mix(
+            mix_path, float(fmt.get("duration_seconds", 0.0))
+        )
+        if not audio_ok:
+            errors.append(audio_error)
+    elif dialogue:
+        errors.append("Script contains dialogue but audio/final_mix.wav is missing")
+    else:
+        warnings.append("No final audio mix supplied; delivery will be blocked until one is added")
 
     approval_ok, approval_message = _read_approval(project_dir, str(episode.get("id", "")))
     if not approval_ok:
@@ -140,7 +179,7 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
         "episode_id": episode.get("id", project_dir.name),
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "status": "failed" if errors else ("passed_with_warnings" if warnings else "passed"),
-        "delivery_eligible": not errors and has_mix and approval_ok,
+        "delivery_eligible": not errors and has_mix and audio_ok and approval_ok,
         "summary": {
             "expected_frames": expected,
             "verified_frames": expected - len(missing) - len(tiny) - len(corrupt) - len(wrong_size) - len(blank),
@@ -158,7 +197,7 @@ def audit_episode(project_dir: Path, sample_limit: int = 24) -> dict:
         "checks": {
             "episode_and_continuity": "passed" if not errors else "review",
             "all_frame_integrity": "passed" if expected and not (missing or tiny or corrupt or wrong_size or blank) else "failed",
-            "audio": "present" if has_mix else "missing",
+            "audio": "passed" if audio_ok else ("invalid" if has_mix else "missing"),
             "human_visual_approval": "approved" if approval_ok else "missing_or_invalid",
             "script_qa": script_report.get("status", "not_run"),
         },
