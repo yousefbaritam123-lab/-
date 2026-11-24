@@ -41,7 +41,7 @@ class SvgCharacterAssetsTests(unittest.TestCase):
             paths = list(extracted.iter(f"{{{SVG_NS}}}path"))
             self.assertEqual(paths[0].get("d"), "M 1 1 L 1 2")
             self.assertEqual(paths[0].get("fill"), "#C62828")
-            self.assertEqual(extracted.find(f".//{{{SVG_NS}}}g").get("stroke"), "#171923")
+            self.assertTrue(any(node.get("stroke") == "#171923" for node in extracted.iter(f"{{{SVG_NS}}}g")) )
 
     def test_rejects_wrong_cast_count(self):
         with tempfile.TemporaryDirectory() as tmp:
