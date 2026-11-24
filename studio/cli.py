@@ -211,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
     blend_cmd = sub.add_parser("blender-render", help="render a real 2D episode with Blender and encode MP4")
     blend_cmd.add_argument("project", type=Path)
     blend_cmd.add_argument("--blender", default="blender")
+    moviepy_cmd = sub.add_parser("moviepy-compose", help="compose rendered shots with optional MoviePy transitions and audio")
+    moviepy_cmd.add_argument("project", type=Path)
+    moviepy_cmd.add_argument("--timeline", type=Path, default=Path("production/moviepy_timeline.json"))
     args = parser.parse_args(argv)
 
     if args.command == "init":
@@ -376,6 +379,15 @@ def main(argv: list[str] | None = None) -> int:
         from .blender_bridge import render_with_blender
         output = render_with_blender(args.project, blender=args.blender)
         print(f"Blender video rendered: {output}")
+        return 0
+    if args.command == "moviepy-compose":
+        from .moviepy_bridge import compose_moviepy_timeline
+        try:
+            output = compose_moviepy_timeline(args.project, args.timeline)
+        except Exception as exc:
+            print("MOVIEPY COMPOSE FAILED: " + str(exc))
+            return 1
+        print(f"MoviePy editorial video created: {output}")
         return 0
     return 2
 
