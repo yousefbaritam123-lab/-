@@ -129,37 +129,33 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Click the File menu using coordinates relative to the detected Qt window.
-          # Xvfb has no EWMH window manager; windowactivate fails in this headless session.
-          # The window is already focused above, so keep focus and send input directly.
-          eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
-          echo "MAIN_WINDOW geometry: $WIDTH x $HEIGHT at $X,$Y"
-          xdotool mousemove --sync --window "$MAIN_WINDOW" 16 10 click 1
-          sleep 2
-          xwd -root -silent -out /tmp/tahoma2d-file-menu-click.png.xwd
-          convert /tmp/tahoma2d-file-menu-click.png.xwd /tmp/tahoma2d-file-menu-click.png
-          # Keep a second screenshot of the menu bar focus state for diagnosis.
-          xdotool key F10
-          sleep 2
-          xwd -root -silent -out /tmp/tahoma2d-file-menu-f10.png.xwd
-          convert /tmp/tahoma2d-file-menu-f10.png.xwd /tmp/tahoma2d-file-menu-f10.png
-          echo "Captured Tahoma2D menu diagnostics; continuing to locate Run Script dialog."
+          # Tahoma2D 1.6 documents File -> Run Script... directly (not File -> Script submenu).
+          # Use the Qt menu keyboard navigation, then enter the absolute script path in QFileDialog.
+          xdotool key --clearmodifiers alt+f
+          sleep 1
+          xwd -root -silent -out /tmp/tahoma2d-file-menu-open.png.xwd
+          convert /tmp/tahoma2d-file-menu-open.png.xwd /tmp/tahoma2d-file-menu-open.png
+          xdotool key --clearmodifiers r
+          sleep 1
+          xdotool key Return
           DIALOG=""
-          for i in $(seq 1 15); do
-            DIALOG=$(xdotool search --onlyvisible --name 'Run script' 2>/dev/null | head -1 || true)
+          for i in $(seq 1 20); do
+            DIALOG=$(xdotool search --onlyvisible --name '.*[Rr]un.*[Ss]cript.*' 2>/dev/null | head -1 || true)
             [ -n "$DIALOG" ] && break
             sleep 1
           done
           if [ -z "$DIALOG" ]; then
             xwininfo -root -tree || true
-            echo "Tahoma2D Run Script dialog did not open."
+            import -window root /tmp/tahoma2d-run-script-dialog-missing.png || true
+            cat /tmp/tahoma2d-gui.log || true
+            echo "Tahoma2D File -> Run Script did not open a script picker."
             exit 1
           fi
-          eval "$(xdotool getwindowgeometry --shell "$DIALOG")"
           xdotool windowfocus "$DIALOG"
-          xdotool mousemove --window "$DIALOG" $((WIDTH / 2)) $((HEIGHT - 55)) click 1
-          xdotool type --clearmodifiers --delay 1 'create_native_scene.js'
-          xdotool key Tab
+          sleep 1
+          xdotool key --clearmodifiers ctrl+l
+          sleep 1
+          xdotool type --clearmodifiers --delay 1 "$SCRIPT_DIR/create_native_scene.js"
           xdotool key Return
           sleep 15
           SCENE=/tmp/youssef-tahoma2d-pilot/production/tahoma2d/scenes/youssef-adam-source-pilot.tnz
@@ -215,6 +211,8 @@ jobs:
           if [ -f /tmp/tahoma2d-file-menu-pressed.png ]; then cp /tmp/tahoma2d-file-menu-pressed.png engine-report/; fi
           if [ -f /tmp/tahoma2d-file-menu-click.png ]; then cp /tmp/tahoma2d-file-menu-click.png engine-report/; fi
           if [ -f /tmp/tahoma2d-file-menu-f10.png ]; then cp /tmp/tahoma2d-file-menu-f10.png engine-report/; fi
+          if [ -f /tmp/tahoma2d-file-menu-open.png ]; then cp /tmp/tahoma2d-file-menu-open.png engine-report/; fi
+          if [ -f /tmp/tahoma2d-run-script-dialog-missing.png ]; then cp /tmp/tahoma2d-run-script-dialog-missing.png engine-report/; fi
           if [ -f /tmp/tahoma2d-pointer-location.txt ]; then cp /tmp/tahoma2d-pointer-location.txt engine-report/; fi
       - uses: actions/upload-artifact@v4
         if: always()
