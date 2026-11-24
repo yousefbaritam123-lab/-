@@ -1,0 +1,84 @@
+name: Studio pre-production package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [studio-pro-foundation]
+    paths:
+      - "studio/story.py"
+      - "studio/director.py"
+      - "studio/tahoma2d_bridge.py"
+      - "studio/svg_character_assets.py"
+      - "studio/cli.py"
+      - "assets/characters/**"
+      - "tests/**"
+      - ".github/workflows/studio-preproduction-package.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preproduction:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: studio-pro-foundation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install studio dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Create isolated 100-second episode
+        run: python -m studio.cli init projects/episode-001
+      - name: Generate serialized story outline
+        run: python -m studio.cli story-next projects/episode-001
+      - name: Build editable 100-second storyboard
+        run: python -m studio.cli storyboard projects/episode-001
+      - name: Prepare original Youssef and Adam art for Tahoma2D
+        run: |
+          python -m studio.cli tahoma2d-prepare projects/episode-001 --character youssef --character adam
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("projects/episode-001/production/tahoma2d/characters")
+          for character in ("youssef", "adam"):
+              folder = root / character
+              manifest = json.loads((folder / "tahoma2d_character_manifest.json").read_text(encoding="utf-8"))
+              assert manifest["source_art_preserved"] is True
+              assert manifest["layer_count"] >= 8
+              assert (folder / manifest["reference_art"]).is_file()
+              assert manifest["rigging_status"].endswith("not_yet_authored")
+          print("SOURCE ART AND VECTOR LAYER PACKAGE VERIFIED; NATIVE PLASTIC RIGS STILL REQUIRED")
+          PY
+      - name: Validate episode and script structure
+        run: |
+          python -m studio.cli validate projects/episode-001
+          python -m studio.cli script-qa projects/episode-001
+      - name: Assemble pre-production handoff
+        if: always()
+        run: |
+          mkdir -p preproduction-handoff
+          cp -a projects/episode-001/episode.json projects/episode-001/continuity.json preproduction-handoff/
+          cp -a projects/episode-001/production/story preproduction-handoff/ 2>/dev/null || true
+          cp -a projects/episode-001/production/storyboard* preproduction-handoff/ 2>/dev/null || true
+          cp -a projects/episode-001/production/tahoma2d preproduction-handoff/ 2>/dev/null || true
+          cp -a projects/episode-001/production/script_quality_report.json preproduction-handoff/ 2>/dev/null || true
+          cp -a projects/episode-001/production/voice_cast.template.json projects/episode-001/production/audio_mix.template.json preproduction-handoff/ 2>/dev/null || true
+          cat > preproduction-handoff/STATUS.txt <<'EOF'
+          This is a pre-production handoff, not a rendered episode.
+          Original character source references and aligned vector levels are included.
+          Tahoma2D Plastic meshes/skeletons and a native .tnz scene are NOT included.
+          Voice models/recordings, licensed music and sound effects must be supplied and reviewed.
+          No 1080x1920 episode master is certified by this workflow.
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: youssef-episode-001-preproduction
+          path: preproduction-handoff/
+          if-no-files-found: error
