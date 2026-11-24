@@ -21,7 +21,7 @@ class Tahoma2DAuthoringTests(unittest.TestCase):
             self.assertEqual(len(levels), 2)
             from PIL import Image
             with Image.open(levels[0]) as image:
-                self.assertEqual(image.size, (1920, 1080))
+                self.assertEqual(image.size, (1080, 1920))
                 self.assertEqual(image.mode, "RGBA")
                 self.assertGreater(image.getbbox()[2], 300)
             manifest = (output / "scene_input_manifest.json").read_text(encoding="utf-8")
