@@ -129,21 +129,20 @@ jobs:
           xdotool windowraise "$MAIN_WINDOW"
           xdotool windowfocus "$MAIN_WINDOW"
           sleep 1
-          # Activate the Qt main window before sending a real root-coordinate click.
+          # Click the File menu using coordinates relative to the detected Qt window.
           xdotool windowactivate --sync "$MAIN_WINDOW"
-          xdotool mousemove --sync 167 68
-          xdotool getmouselocation --shell | tee /tmp/tahoma2d-pointer-location.txt
-          xdotool click --clearmodifiers 1
+          eval "$(xdotool getwindowgeometry --shell "$MAIN_WINDOW")"
+          echo "MAIN_WINDOW geometry: $WIDTH x $HEIGHT at $X,$Y"
+          xdotool mousemove --sync --window "$MAIN_WINDOW" 16 10 click 1
           sleep 2
           xwd -root -silent -out /tmp/tahoma2d-file-menu-click.png.xwd
           convert /tmp/tahoma2d-file-menu-click.png.xwd /tmp/tahoma2d-file-menu-click.png
-          # Also test the standard Qt menu-bar focus key without toggling a mouse-opened menu.
+          # Keep a second screenshot of the menu bar focus state for diagnosis.
           xdotool key F10
           sleep 2
           xwd -root -silent -out /tmp/tahoma2d-file-menu-f10.png.xwd
           convert /tmp/tahoma2d-file-menu-f10.png.xwd /tmp/tahoma2d-file-menu-f10.png
-          echo "Captured File-menu state after activation/click and F10."
-          exit 23
+          echo "Captured Tahoma2D menu diagnostics; continuing to locate Run Script dialog."
           DIALOG=""
           for i in $(seq 1 15); do
             DIALOG=$(xdotool search --onlyvisible --name 'Run script' 2>/dev/null | head -1 || true)
