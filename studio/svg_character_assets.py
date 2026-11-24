@@ -131,7 +131,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
             d = child.get("d", "") if tag == "path" else ""
             subpaths = _split_subpaths(d) if tag == "path" else []
             if tag == "path" and child.get("fill") == "none" and child.get("stroke-width") in {"8", "4"}:
-                kind = "arm_outline" if child.get("stroke-width") == "8" else "arm_skin"
+                kind = "outline" if child.get("stroke-width") == "8" else "skin"
                 for subpath in subpaths:
                     points = _absolute_polyline_points(subpath)
                     if len(points) >= 3:
@@ -140,7 +140,7 @@ def prepare_svg_cast(source_svg: Path, output_dir: Path, *, expected_count: int 
                             segment_path = "M " + " L ".join(f"{x:g} {y:g}" for x, y in segment_points)
                             part = ET.Element(_tag("path"), dict(child.attrib))
                             part.set("d", segment_path)
-                            articulated_parts.append((f"{segment_name}_{kind}_{side}", part))
+                            articulated_parts.append((f"{segment_name}_arm_{kind}_{side}", part))
             elif tag == "path" and child.get("fill") != "none" and child.get("stroke-width") == "4":
                 for subpath in subpaths:
                     points = _absolute_polyline_points(subpath)
