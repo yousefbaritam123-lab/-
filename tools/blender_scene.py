@@ -229,7 +229,8 @@ def main():
     camera = bpy.data.objects.new("Studio_2D_Camera", camera_data)
     scene.collection.objects.link(camera)
     camera.data.type = "ORTHO"
-    camera.data.ortho_scale = width / 100.0
+    camera.data.sensor_fit = "VERTICAL"
+    camera.data.ortho_scale = height / 100.0
     camera.location = (0, 0, 30)
     camera.rotation_euler = (0, 0, 0)
     scene.camera = camera
@@ -296,8 +297,12 @@ def main():
             root.keyframe_insert(data_path="location", frame=start)
             root.keyframe_insert(data_path="location", frame=end)
             track = tracks.get(actor_id, [])
-            action = track[0].get("action") if track else shot.get("action", "idle")
-            set_pose(actor, action, start)
+            if track:
+                for segment in track:
+                    action_frame = start + max(0, round(float(segment.get("start", 0)) * fps))
+                    set_pose(actor, segment.get("action", "idle"), min(action_frame, end))
+            else:
+                set_pose(actor, shot.get("action", "idle"), start)
             root.location.y += 0.035
             root.keyframe_insert(data_path="location", frame=start + max(1, int(fps * 0.25)))
             root.location.y -= 0.035
